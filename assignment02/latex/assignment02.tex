@@ -132,7 +132,7 @@ For an alternate initial solution $\theta^{[0]}=0.7\cos(t_{i})+2\sin(t_{i})$, I 
 \end{figure}
 
 \subsection*{Part B}
-For longer time intervals, say $T = 20$, I find the following solution shown in Fig.~\ref{fig:q1a_long} using the initial guess of $\theta^{[0]}=0.9\cos(t_{i})+0.2\sin(t_{i})$.
+For longer time intervals, say $T = 20$, I find the following solution shown in Fig.~\ref{fig:q1b_long} using the initial guess of $\theta^{[0]}=0.9\cos(t_{i})+0.2\sin(t_{i})$.
 
 \begin{figure}
 	\centering
@@ -145,14 +145,23 @@ For longer time intervals, say $T = 20$, I find the following solution shown in 
     \label{fig:q1b_long}
 \end{figure}
 
-In general, I have not been able to find a generic solution which can have the Newton iteration able to find a solution. For a general guess
-that is not finely-tuned, the $\max \theta$ grows unbounded and behaves eratically, as can be seen in Fig.~\ref{fig:q1b_scan}. Physically this does not make sense as a pendulum has multiple bounded orbits that intersect at $\theta = 0.7$ and thus the solutions that the Newton iterator finds which effectively explode are not valid. Intuitively, the asymptote of $\max\theta$ is $\pi$.  I was also unable to find boundary layers, whose existence was suggested by this question.
+In general, as I anticipate the existence of the boundary layer, and from physical intuition I expect that such a solution to be slow moving near $\theta=\pi$, then propose an initial solution 
+\begin{align}
+	\theta^{[0]} = 
+	\begin{cases}
+		0.7,&\quad t=0\ \&\ t=T\\
+		\pi,&\quad 0 < t < T.
+	\end{cases}\label{eq:theta_init}
+\end{align}
+Doing the Newton iteration with this guess gives a solution found in the left-hand subplot of Fig.~\ref{fig:q1b_scan}. Then scanning across a bunch of different end times $T$, we find (right-hand subplot of Fig.~\ref{fig:q1b_scan}) that the $\max \theta$ asymptotes towards a value of $\theta = \pi$ as we can expect from physical intuition. 
 
 \begin{figure}
     \centering
-    \includegraphics[clip,scale=0.3]{q1b_figure.pdf}
+    \subfloat{\includegraphics[clip,scale=0.3]{q1b_boundary_figure.pdf}}
+    \subfloat{\includegraphics[clip,scale=0.3]{q1b_figure.pdf}}
     \caption{
-        Solution found by the Newton Iteration for a range of $T$ and for a variety of meshes with differing number of points $m$. Using the initial solution $\theta^{[0]}=0.9\cos(t_{i})+0.2\sin(t_{i})$. Different colors of lines denote different number of mesh points. 
+        [Left Subplot] Solution found by the Newton Iteration for a range of $T$ and for a variety of meshes with differing number of points $m$. [Right Subplot] Solution found by the Newton Iteration for a range of $T$ and for a variety of meshes with differing number of points $m$. Using the initial solution given by~\eqref{eq:theta_init}. Different colors of lines denote different number of mesh points, which are indistinguishable in this case as each converges to the same answer. 
+        Blue dashed line denotes the value of $\pi$.
     }
     \label{fig:q1b_scan}
 \end{figure}
@@ -170,7 +179,7 @@ This code can be found in the ipython notebook \verb|A2Q2.ipynb|. Figure~\ref{fi
 	\label{fig:five_pt_soln_recreation}
 \end{figure}
 
-Performing grid refinement using this implementation of the five-point Laplacian, we observe in Fig.~\ref{fig:five_pt_err_scaling} that this implementation has accuracy of order two. 
+Performing grid refinement using this implementation of the five-point Laplacian, we observe in Fig.~\ref{fig:five_pt_err_scaling} that this implementation has accuracy of order two. From the grid refinement procedure I estimate that the number of points needed to reach an inf-norm error of $<10^{-5}$ is about 400 points
 
 \begin{figure}[!h]
 	\centering
@@ -332,7 +341,7 @@ Implementing the deferred corrections by changing the right hand side of the PDE
 		&= 13\cos(3x)\sin(2y) - \dfrac{h^{2}}{12}169\cos(3x)\sin(2y),
 	\end{align}
 \end{subequations}
-we acquire the error scaling observed in Fig.~\ref{fig:nine_pt_deferred_err_scaling}. We observe that this correction increases the order of the method by two from two to four. 
+we acquire the error scaling observed in Fig.~\ref{fig:nine_pt_deferred_err_scaling}. We observe that this correction increases the order of the method by two from two to four. From the grid refinement (see ipython notebook), I estimate that we would need 350 grid points in the $x$-direction and correspondingly $700$ grid points in the y-direction to acquire an inf-norm error of $< 10^{-5}$.
 
 \begin{figure}[!h]
 	\centering
