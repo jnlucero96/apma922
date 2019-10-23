@@ -283,7 +283,7 @@ In the code \verb|A3Q0.ipynb| I compute numerically the spectral radii of the di
 
 \subsection*{Part A}
 
-We observe from Fig.~\ref{fig:q1a} that this method, for the given RHS, is of spectral order. The RHS function given is continuous on the interval $[-1,1]$ and is also continuous when periodically extended across the real line. The RHS is in $C^{\infty}$ and it's derivatives are 2-periodic on $[-1,1]$ and thus we expect that we should acquire spectral order for the solution $v_{j} \approx u(x_{j})$. 
+We observe from Fig.~\ref{fig:q1a} that this method, for the given RHS, is of spectral order. The RHS function given is continuous on the interval $[-1,1]$ and is also continuous when periodically extended across the real line. The RHS is in $C^{\infty}$ and it's derivatives are 2-periodic on $[-1,1]$ and thus we expect that we should acquire spectral order for the solution $v_{j} \approx u(x_{j})$. It requires around 40 points to achieve an accuracy of 8 decimal places. 
 
 \begin{figure}[!h]
     \centering
@@ -300,7 +300,7 @@ We observe from Fig.~\ref{fig:q1b} that this method, for the given RHS, is of or
 	If u has p-1 continuous derivatives in $L^{2}(\mathbb{R})$ for some $p\ge \nu + 1$, where $\nu$ denotes the $\nu$th spectral derivative of u on the grid $h\mathbb{Z}$, and a pth derivative of bounded variation, then $$|w_{j}-u^{(\nu)}(x_{j}) = \bO(h^{p-v})\quad \mathrm{as}\ h\to 0.$$
 \end{theorem}
 
-In this case we have $\nu = 1$ and $p=2$, and thus we expect an error scaling $\bO(h^{1})$, which agrees with our observation from Fig.~\ref{fig:q1b}.
+In this case we have $\nu = 1$ and $p=2$, and thus we expect an error scaling $\bO(h^{1})$, which agrees with our observation from Fig.~\ref{fig:q1b}. To get an accuracy of $u(0.5)$ to within 8 decimal places, extrapolating from the error we have, it would require around 2 million points. 
 
 \begin{figure}[!h]
     \centering
