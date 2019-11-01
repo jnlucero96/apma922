@@ -1,0 +1,169 @@
+\documentclass[12pt]{article}
+
+% Document Formatting Packages
+\usepackage{geometry}
+\geometry{letterpaper}
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+
+% Document Navigation Packages
+\usepackage[parfill]{parskip}
+\usepackage{enumitem}
+
+% Math Typesetting Tools
+\usepackage{amssymb}
+\usepackage{amsmath,mathtools}
+\usepackage{framed}
+\usepackage{bm} % boldface greek symbols
+\usepackage{nicefrac}
+
+% Hyperref
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=red]{hyperref}
+
+% Color Text Tools
+\newcommand{\red}[1]{\textcolor{Red}{#1}}
+\newcommand{\blue}[1]{\textcolor{Blue}{#1}}
+\newcommand{\green}[1]{\textcolor{Green}{#1}}
+
+% Chemistry Typesetting Tools
+\usepackage{expl3}
+\usepackage{calc}
+\usepackage{mhchem}
+
+% Physics Typesetting Tools
+\usepackage{physics}
+
+% Inserting Figures
+\usepackage{graphicx}
+\graphicspath{ {images/} }
+\usepackage[caption=false]{subfig}
+\usepackage[section]{placeins}
+
+% Miscellaneous Symbol Packages
+\usepackage{textcomp}
+\usepackage{siunitx}
+\usepackage{gensymb}
+
+% Set Document Dimensions
+\oddsidemargin = 0in
+\topmargin = 0in
+\headheight=0pt
+\headsep = 0pt
+\textheight = 9in
+\textwidth = 6.5in
+\marginparsep = 0in
+\marginparwidth = 0in
+\footskip = 18pt
+\parindent=0pt
+\parskip=0pt
+
+% Symbol shortcuts
+\newcommand{\kT}{k_{\mathrm{B}}T}
+\newcommand{\xbar}{\bar{x}}
+\newcommand{\ybar}{\bar{y}}
+\newcommand{\bO}{\mathcal{O}}
+\newcommand{\vhat}{\hat{v}}
+\newcommand{\dfte}{e^{-ikx_{j}}}
+\newcommand{\idfte}{e^{ikx_{j}}}
+
+\allowdisplaybreaks
+
+%\newtheorem{theorem}{Theorem}
+
+% Title
+\title{APMA 922: Homework Set 04}
+\author{Joseph Lucero}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{Problem 1}
+
+\subsection*{Part A}
+
+In order to apply TChebyshev spectral methods to solve BVPs we must scale and translate the domain variable $x \in [0,1]$ of the given BVP into the variable $z\in [-1,1]$. To do this we let $$z = 2x-1,$$ and thus have that $$x = \dfrac{z+1}{2}.$$ So the variable $z\in [-1,1]$ and thus we can apply TChebyshev spectral methods on this variable. With this transformation the differentials are also transformed. In particular we have $$\dd{x} = \dfrac{1}{2}\dd{z},$$ which then transforms the definition of the derivative $$ \dv{x}\to 2\dv{z},$$ and similarly for the second derivative $$\dv[2]{x}\to 4\dv[2]{z}.$$ Thus the differential equation in variable $x$ is recast into the differential equation in variable $z$, 
+\begin{align}
+	\left[4\varepsilon\dv[2]{z} + 2\dv{z}\right]y(z) = -\exp\left(\dfrac{1-z}{2}\right),\quad -1 < z < 1,\quad y(-1) = y(1) = 0.
+\end{align}
+
+Figure~\ref{fig:q1a_figure} shows, in the left subplot, the solution acquired from the spectral method in the black curve. As can be seen the computed solution agrees very well with the exact solution that is shown with the red curve. The right subplot of Fig.~\ref{fig:q1a_figure} we observe that for $\varepsilon=1$, for $N=16$, the error of the solution is already as small as it can be. We also note that the $N$, for which the error is minimum, is increased the smaller $\varepsilon$ is. This, as we saw before, is because a boundary layer appears as $\varepsilon\to 0$ and thus requires more points to resolve. We observe that it requires about an accuracy of $10^{-5}$ is achieved for $N=5$.
+
+\begin{figure}[!h]
+	\centering
+	\subfloat{\includegraphics[clip, scale=0.3]{q1a_soln_figure.pdf}}
+	\subfloat{\includegraphics[clip, scale=0.3]{q1a_err_figure.pdf}}
+	\caption{[Left] Exact (red line) and computed (black points) solution as a function of $x$ for $N=24$. [Right] Infinity-norm error of the computed solution for $\varepsilon=1$ (blue line) and $\varepsilon=0.01$ (green line) as a function of the number of intervals $N$.}
+	\label{fig:q1a_figure}
+\end{figure}
+
+\subsection*{Part B}
+
+As above, we rescale the domain variable $x\in [-2, 1]$ to a variable $z\in[-1,1]$. To do this we let $$z = \dfrac{2x+1}{3},$$ and thus have that $$x=\dfrac{3z-1}{2}.$$ So the variable $$z\in[-1,1]$$ and we can apply TChebyshev spectral methods on this variable. With this transformation the differentials are also transformed. In particular we have $$\dd{x} = \dfrac{3}{2}\dd{z},$$ which then tranforms the definition of the derivative $$\dv{x}\to \dfrac{2}{3}\dd{z},$$ and similarly for the second derivative $$\dv[2]{x}\to \dfrac{4}{9}\dv[2]{z}.$$ Thus the differential equation in variable $x$ is recast into the differential equation in variable $z$,
+\begin{align}
+	\left[\dfrac{4}{9}\dv[2]{u}{z} - 4(3z-1)\right]u(z) = -(3z-1)^{2},\quad -1 < z < 1,\quad u(-1) = 0,\ u^{\prime}(1) = 2. 
+\end{align}
+
+\begin{figure}[!h]
+	\centering
+	\subfloat{\includegraphics[clip, scale=0.3]{q1b_soln_figure.pdf}}
+	\subfloat{\includegraphics[clip, scale=0.3]{q1b_err_figure.pdf}}
+	\caption{[Left] Computed solution as a function of $x$. [Right] Infinity-norm error of the computed solution as a function of the number of intervals $N$.}
+	\label{fig:q1b_figure}
+\end{figure}
+
+Figure~\ref{fig:q1b_figure} shows, in the left subplot, the solution acquired from the spectral method in the black curve. The right subplot of Fig.~\ref{fig:q1b_figure} we observe that, as we expect, we attain spectral accuracy for this method. To get an accuracy of $10^{-4}$ we observe that we need $N=10$ number of intervals.
+
+\section*{Problem 2}
+
+\subsection*{Part A}
+
+Using the definition of the differentiation matrix given that we derived in the last assignment,
+\begin{align}
+    D_{ij} = 
+    \begin{cases}
+        \dfrac{a_{i}}{a_{j}(x_{i}-x_{j})},&\quad i\neq j\\
+        \sum\limits_{k=0,k\neq j}^{N}(x_{j}-x_{k}), &\quad i=j.
+    \end{cases}    
+\end{align}
+we implemented this differentiation matrix in \verb|A4Q2.ipynb|. Using the TChebyshev extreme points $\{x_{j}\}$ in the definition above
+returns the TChebyshev differentiation matrix as we expect. Demonstration of this test in one of the cells in the notebook.
+
+\subsection*{Part B}
+
+This is implemented in \verb|A4Q2.ipynb|. Since the algorithm in \verb|gauss.m| yields the $N$ zeros of the Legendre polynomial, to generate our grid in the interval [-1,1], the interior points are generated from $N-1$ zeros of the Legendre polynomial. The endpoints 
+constitute the remaining two points that bring the total number of points in the grid to $N+1$, consistent with the output of the \verb|cheb.m| algorithm. 
+
+\subsection*{Part C}
+
+Figure~\ref{fig:tchebyshev_err} is a recreation of Output 11 from \textbf{[Tr]}. Here the function $u(x)$ is evaluated on the TChebyshev grid and the TChebyshev differentiation matrix is used to compute the spectral derivative. Figure~\ref{fig:legendre_err} is the recreation of Output 11 except using Legendre points to evaluate the function $u(x)$ and the Legendre differentiation matrix to compute the spectral derivative.
+
+\begin{figure}[!h]
+	\centering
+	\subfloat{\includegraphics[clip, scale=0.5]{tchebyshev_err_figure.pdf}}
+	\caption{[Left column] Function $u(x)$ evaluated on the TChebyshev grid for $N=10$ (top left subplot) and $N=20$ (bottom left subplot) as a function of $x$. Associated infinity-norm error of the spectral derivative $u^{\prime}(x)$ for $N=10$ (top right subplot) and $N=20$ (bottom right subplot) as a function of $x$.}
+	\label{fig:tchebyshev_err}
+\end{figure}
+
+\begin{figure}[!h]
+	\centering	
+	\subfloat{\includegraphics[clip, scale=0.5]{legendre_err_figure.pdf}}
+	\caption{[Left column] Function $u(x)$ evaluated on the Legendre grid for $N=10$ (top left subplot) and $N=20$ (bottom left subplot) as a function of $x$. Associated infinity-norm error of the spectral derivative $u^{\prime}(x)$ for $N=10$ (top right subplot) and $N=20$ (bottom right subplot) as a function of $x$.}
+	\label{fig:legendre_err}
+\end{figure}
+
+\subsection*{Part D}
+
+Figure~\ref{fig:q2d_figure} shows the computed solution for the two BVPs that we are asked to solve. In the left subplot is the computed solution for the differential equation $u^{\prime\prime}(x) = e^{4x}$ acquired from utilizing the TChebyshev (red solid line) and the Legendre (black dashed line) spectral differentiation matrix. Since for this BVP $x\in [-1,1]$, no rescaling of the domain was necessary. 
+
+In the right subplot the computed solution for the differential equation $u^{\prime\prime}(x) - 8xu = -4x^{2}$ acquired from utilizing the TChebyshev (red solid line) and the Legendre (black dashed line) spectral differentiation matrix. The scaling of the domain used in Question 1 Part B was used once again to solve the BVP on the domain $z\in [-1,1]$. 
+
+\begin{figure}[!h]
+	\centering
+	\includegraphics[clip, scale=0.3]{q2d_soln_figure1.pdf}
+	\includegraphics[clip, scale=0.3]{q2d_soln_figure2.pdf}
+	\caption{[Left] Computed solution, $U(x)$, of the differential equation $u^{\prime\prime}(x) = e^{4x}$ as a function of $x$. [Right] Computed solution, $U(x)$, of the differential equation $u^{\prime\prime}(x) - 8xu = -4x^{2}$ as a function of $x$. Red solid lines are solution computed using TChebyshev differentiation matrices. Black dashed lines are solution computed using Legendre differentiation matrices.}
+    \label{fig:q2d_figure}
+\end{figure}
+
+
+\end{document}
