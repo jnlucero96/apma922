@@ -1,0 +1,164 @@
+\documentclass[12pt]{article}   	
+
+% Document Formatting Packages
+\usepackage{geometry}            		
+\geometry{letterpaper}  
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+
+% Document Navigation Packages
+\usepackage[parfill]{parskip}          
+\usepackage{enumitem}         
+
+% Math Typesetting Tools
+\usepackage{amssymb}
+\usepackage{amsmath,mathtools}
+\usepackage{framed}
+\usepackage{bm} % boldface greek symbols
+
+% Hyperref
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=red]{hyperref}
+
+% Color Text Tools
+\newcommand{\red}[1]{\textcolor{Red}{#1}}
+\newcommand{\blue}[1]{\textcolor{Blue}{#1}}
+\newcommand{\green}[1]{\textcolor{Green}{#1}}
+
+% Chemistry Typesetting Tools
+\usepackage{expl3}
+\usepackage{calc}
+\usepackage{mhchem}
+
+% Physics Typesetting Tools
+\usepackage{physics}
+\newcommand{\kT}{k_{\mathrm{B}}T}
+
+% Inserting Figures
+\usepackage{graphicx}
+\graphicspath{ {images/} }	
+\usepackage[caption=false]{subfig}
+\usepackage[section]{placeins}
+		
+% Miscellaneous Symbol Packages
+\usepackage{textcomp}  		
+\usepackage{siunitx}
+\usepackage{gensymb}
+
+% Set Document Dimensions
+\oddsidemargin = 0in
+\topmargin = 0in
+\headheight=0pt
+\headsep = 0pt
+\textheight = 9in
+\textwidth = 6.5in
+\marginparsep = 0in
+\marginparwidth = 0in
+\footskip = 18pt
+\parindent=15pt
+\parskip=0pt
+
+% Title
+\title{APMA 922: Project Proposal}
+\author{Joseph Lucero}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+\subsection{Fokker-Planck Equation}
+
+The Fokker-Planck (FP) Equation (also known in stochastic processes as the Forward Kolmogorov Equation) is an equation of motion for the joint probability density function, $p(\vb{X}, t)$, of some random variable (possibly vector) $\vb{X}$. 
+\begin{align}
+    \pdv{t}p(\vb{X},t) = -\sum\limits_{i=1}^{N}\pdv{x_{i}}\left[\mu_{i}(\vb{X},t)p(\vb{X},t)\right] + \sum\limits_{i=1}^{N}\sum\limits_{j=1}^{N}\pdv{}{x_{i}}{x_{j}}\left[D_{ij}(\vb{X},t)p(\vb{X},t)\right].\label{eq:fpe_general}
+\end{align}
+Here, $\mu_{i}(\vb{X},t)$ is the drift vector describing the deterministic forces that are applied to the random quantity $\vb{X}$. $D_{ij}(\vb{X},t)$ is the diffusion tensor and describes how the current state of the random variable $\vb{X}$ affects its diffusivity. Such an equation is of interest to many in nonequilibrium statistical mechanics as it allows us to study both, the behaviour of systems taken far out of equilbrium, and those systems with a dominant stochastic force contribution. 
+
+While the FP equation describes the time-evolution of the ensemble distribution, one can simulate the trajectories of an individual member of that ensemble using the corresponding stochastic differential equation known as the Langevin Equation with the form,
+\begin{align}
+    \dd{\vb{X}(t)} = \bm{\mu}(\vb{X},t)\dd{t} + \bm{\sigma}(\vb{X},t)\dd{\vb{W}(t)}.
+\end{align}
+however, the FP equation retains the distinct advantage that it is easier to solve both analytically and numerically. Moreover, because these trajectories are stochastic, it is generally difficult to characterize the behaviour of a single trajectory; however, at the level of the ensemble, quantities like means and variances of different quantities are well behaved and thus we are generally more interested in those quantities that summarize the ensemble than the exact details of the individual trajectories which comprise it. 
+ 
+\subsection{Special Cases}
+
+\subsubsection{2-dimensions}
+For this project, we will consider the cases of one and two-dimensional random vector $\vb{X}$. First we begin with two dimensions and so have,
+\begin{align}
+    \vb{X} = 
+    \begin{bmatrix}
+        x_{1} \\ x_{2}
+    \end{bmatrix}.
+\end{align}
+We also consider when the drift vector represents a time independent and conservative force with a constant background drift. As such, it has the form, 
+\begin{align}
+    \mu_{i}(\vb{X}) = \mu_{i}(x_{1},x_{2})= -\dfrac{1}{\gamma}\left[\pdv{U(x_{1},x_{2})}{x_{i}} - \psi_{i}\right]\quad i\in\{1,2\}.
+\end{align}
+In particular, we are interested to solving cases where $U(x_{1},x_{2})$ is periodic in both $x_{1}$ and $x_{2}$ and has a term that couples these two variables,
+\begin{align}
+    U(x_{1},x_{2}) = E_{1}\cos(x_{1}) + E^{\ddagger}\cos(x_{1}-x_{2}) + E_{2}\cos(x_{2}),\quad x_{1}, x_{2} \in [0,2\pi).
+\end{align}
+In addition, we also consider only the cases when the diffusion tensor is isotropic, diagonal, and independent of the state of the random variable $\vb{X}$ or of time 
+\begin{align}
+    D = D_{ij}\delta_{ij}.
+\end{align}
+The FP equation, with these considerations, reduces to 
+\begin{align}
+    \pdv{t}p(\vb{X},t) = -\pdv{x_{1}}\left[\mu_{1}(\vb{X})p(\vb{X},t)\right] - \pdv{x_{2}}\left[\mu_{2}(\vb{X})p(\vb{X},t)\right] +  
+    D\pdv[2]{x_{1}}p(\vb{X},t)+  
+    D\pdv[2]{x_{2}}p(\vb{X},t).
+\end{align}
+We can more succinctly write this in the form,
+\begin{align}
+    \pdv{t}p(\vb{X},t) = \underbrace{-\div{\left[\bm{\mu}(\vb{X})p(\vb{X},t)\right]}}_{\text{advection}} + \underbrace{D\laplacian{p(\vb{X},t)}}_{\text{diffusion}}.\label{eq:fpe_case}
+\end{align}
+Thus, we see that the FP equation is nothing more than an advection-diffusion equation with the caveat that, since it describes the evolution of a probability distribution, it must preserve normalization
+\begin{align}
+    \int\limits_{-\infty}^{\infty}\dd{\vb{X}}p(\vb{X},t) = 1\quad \forall\ t.
+\end{align}
+As such, the probability distribution $p(\vb{X},t)$ must satisfy a continuity equation 
+\begin{align}
+    \pdv{t}p(\vb{X},t) = -\div{\vb{J}(\vb{X},t)}, \label{eq:continuity_eq}
+\end{align}
+for some probability flux $\vb{J}(\vb{X},t)$. Comparing~\eqref{eq:continuity_eq} to~\eqref{eq:fpe_case} we identify the probability current as 
+\begin{align}
+    \vb{J}(\vb{X},t) = \bm{\mu}(\vb{X})p(\vb{X},t) + \grad{p(\vb{X},t)}.
+\end{align}
+
+\subsection{One-dimension}
+
+In the limit that $E^{\ddagger} \to\infty$, then $x_{1}\to x_{2} = x$ and the potential, defining $E^{*} = E_{1} + E_{2}$, reduces to the case of a single variable
+\begin{align}
+U(x) = E^{*}\cos(x), 
+\end{align} 
+and so the FP equation simplifies to 
+\begin{align}
+    \pdv{t}p(x,t) = -\pdv{x}\left[\mu(x)p(x,t)\right] + D\pdv[2]{x}p(x,t).\label{eq:fpe_1D}
+\end{align}
+which is simply the one-dimensional advection diffusion equation.
+
+\section{Methods}
+
+\subsection{General Problem}
+
+We are interested in numerical solutions of~\eqref{eq:fpe_case}. Re-expressing this equation as
+\begin{align}
+    \pdv{t}p(\vb{X},t) = \mathcal{L}p(\vb{X},t),\label{eq:fpe_operator}
+\end{align}
+with the Fokker-Planck operator,
+\begin{align}
+    \mathcal{L} \equiv -\div\bm{\mu}(\vb{X}) + D\laplacian,
+\end{align}
+we observe that finding numerical solutions to this problem simply amount to finding a discretization for the time derivative operator on the left-hand side and a spatial discretization on the right-hand side. I am therefore interested in exploring the possible combinations of temporal and spatial discretizations which can solve this equation and the accuracy and convergence rates of these various schemes. 
+
+\subsection{Approach}
+
+To approach this problem I will first examine methods solving pure diffusion alone (ie. $\bm{\mu} = \bm{0}$). In particular, I will discuss explicit and implicit schemes and the benefits and drawbacks of such schemes. Then I will examine methods for solving pure advection (ie. $D = 0$). I will do this for both cases of one and two-dimensions. Finally, I will attempt to put these methods together to acquire schemes which can then solve the general problem~\eqref{eq:fpe_operator}. 
+
+
+
+
+
+
+
+\end{document}
