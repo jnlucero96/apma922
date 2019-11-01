@@ -1,0 +1,153 @@
+\documentclass[12pt]{article}   	
+
+% Document Formatting Packages
+\usepackage{geometry}            		
+\geometry{letterpaper}  
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+
+% Document Navigation Packages
+\usepackage[parfill]{parskip}          
+\usepackage{enumitem}         
+
+% Math Typesetting Tools
+\usepackage{amssymb}
+\usepackage{amsmath,mathtools}
+\usepackage{framed}
+\usepackage{bm} % boldface greek symbols
+
+% Hyperref
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=red]{hyperref}
+
+% Color Text Tools
+\newcommand{\red}[1]{\textcolor{Red}{#1}}
+\newcommand{\blue}[1]{\textcolor{Blue}{#1}}
+\newcommand{\green}[1]{\textcolor{Green}{#1}}
+
+% Chemistry Typesetting Tools
+\usepackage{expl3}
+\usepackage{calc}
+\usepackage{mhchem}
+
+% Physics Typesetting Tools
+\usepackage{physics}
+\newcommand{\kT}{k_{\mathrm{B}}T}
+
+% Inserting Figures
+\usepackage{graphicx}
+\graphicspath{ {images/} }	
+\usepackage[caption=false]{subfig}
+\usepackage[section]{placeins}
+		
+% Miscellaneous Symbol Packages
+\usepackage{textcomp}  		
+\usepackage{siunitx}
+\usepackage{gensymb}
+
+% Set Document Dimensions
+\oddsidemargin = 0in
+\topmargin = 0in
+\headheight=0pt
+\headsep = 0pt
+\textheight = 9in
+\textwidth = 6.5in
+\marginparsep = 0in
+\marginparwidth = 0in
+\footskip = 18pt
+\parindent=15pt
+\parskip=0pt
+
+% Title
+\title{APMA 922: Project Proposal}
+\author{Joseph Lucero}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+%\subsection{Stochastic Differential Equations}
+%In nonequilibrium statistical mechanics, and more generally in stochastic processes, the Langevin equation 
+%\begin{align}
+%    \dv[2]{\vb{r}}{t} = -\gamma\dv{\vb{r}}{t} - \grad{U(\vb{r},t)}+ \bm{\eta}(t)
+%\end{align}
+% with the position of the particle $\vb{r}$, $\gamma$ is the drag matrix, and noise term $\bm{\eta}(t)$, is a stochastic differential equation (SDE) governing the evolution of a subset of degrees of freedom in a given system which are slow, relative to the fast degrees of freedom that give rise to the stochastic forces. Here we consider cases where the drag matrix is diagonal and so we define $$\gamma_{i} = \gamma_{ij}\delta_{ij}$$ with $\delta_{ij}$ being the Kronecker delta, and the case where the noise term satisfies
+% \begin{subequations}
+%     \begin{align}
+%         \ev{\eta_{i}(t)} &= 0\ \forall\ i\\
+%         \ev{\eta_{i}(t)\eta_{j}(s)} &= 2\gamma_{i}\kT\delta_{ij}\delta(t-s),
+%     \end{align}
+%     \label{eq:noise_stats}
+% \end{subequations}
+%where $\delta(t-s)$ is the Dirac delta function. 
+% 
+% We can recapitulate this second-order SDE as two first-order SDEs for the position and the velocity
+% \begin{subequations}
+%     \begin{align}
+%        \dd{\vb{r}} &= \vb{v}\dd{t} + \sqrt{2\gamma_{1}\kT}\dd{W_{1}(t)}\\
+%        \dd{\vb{v}} &= -\left[\gamma_{2}\vb{v}+\grad{U(\vb{r},t)}\right]\dd{t} + \sqrt{2\gamma_{2}\kT}\dd{W_{2}(t)},
+%     \end{align}
+% \end{subequations}
+% with $\gamma = \zeta_{i} / m$, and Wiener increment $\dd{W(t)}$ that satisfies
+% \begin{subequations}
+%    \begin{align}
+%        \ev{\dd{W(t)}} &= 0\\
+%        \ev{\dd{W_{i}(t)}\dd{W_{j}(s)}} &= \dd{t}\delta_{ij}\delta(t-s).
+%    \end{align}     
+% \end{subequations}
+% We can then recast this into one single equation 
+% \begin{align}
+%    \dd{\vb{X}} = \bm{\mu}(\vb{X},t)\dd{t} + \bm{\sigma}(\vb{X},t)\dd{\vb{W}(t)},\label{eq:general_sde}
+% \end{align}
+%for the random vector,
+%\begin{align}
+%    \vb{X} = 
+%    \begin{bmatrix}
+%        \vb{r} \\ \vb{v}
+%    \end{bmatrix},
+%\end{align}
+%drift vector,
+%\begin{align}
+%    \bm{\mu}(\vb{X},t) = 
+%    \begin{bmatrix}
+%        \vb{v} \\ -\gamma\vb{v}-\grad{U(\vb{r},t)}
+%    \end{bmatrix}
+%\end{align}
+%and diagonal diffusion tensor,
+%\begin{align}
+%    D &= \dfrac{1}{2}\bm{\sigma}\bm{\sigma}^{\mathrm{T}} \\
+%    &= 
+%    \kT\begin{bmatrix}
+%        \gamma_{1} & 0 \\ 0 & \gamma_{2}
+%    \end{bmatrix}
+%\end{align}
+%where the diagonality of the diffusion tensor arises from the independence of the noise terms~\eqref{eq:noise_stats}.
+%Originally this equation was used to model Brownian motion, the seemingly random movement of a particle (the slow degrees of freedom) due to the collisions with the molecules of the fluid (the fast degrees of freedom). 
+%
+%In biological contexts, the limit of large drag, $\gamma \gg 1$, corresponding to the presence of large viscous forces and low Reynold's number, is most pertinent and thus inertia (or equivalently persistent acceleration) is negligible so the Langevin Equation reduces to,
+%\begin{align}
+%\dd{\vb{r}} = -\dfrac{1}{\gamma}\grad{U(\vb{r},t)}\dd{t} + \bm{\sigma}(\vb{r},t)\dd{\vb{W}}(t),
+%\end{align}
+%which has a corresponds to~\eqref{eq:general_sde} with random vector 
+%\begin{align}
+%\vb{X} = \vb{r}
+%\end{align}
+%with drift vector,
+%\begin{align}
+%\bm{\mu}(\vb{r}, t) = -\dfrac{1}{\lambda}\grad{U(\vb{r}, t)},
+%\end{align}
+%and with similar diffusion tensor.
+
+\subsection{Fokker-Planck Equation}
+
+The Fokker-Planck Equation (also known in stochastic processes as the Forward Kolmogorov Equation) is an equation of motion for the joint probability density function, $p(\vb{X}, t)$, of some random variable (possibly vector) $\vb{X}$. 
+\begin{align}
+    \pdv{t}p(\vb{X},t) = -\sum\limits_{i=1}^{N}\pdv{x_{i}}\left[\mu_{i}(\vb{X},t)p(\vb{X},t)\right] + \sum\limits_{i=1}^{N}\sum\limits_{j=1}^{N}\pdv{}{x_{i}}{x_{j}}\left[D_{ij}(\vb{X},t)p(\vb{X},t)\right].\label{eq:fpe_general}
+\end{align}
+
+\subsection{Models}
+
+ 
+ \section{Methods}
+
+\end{document}
