@@ -11,7 +11,7 @@ set_printoptions(linewidth=500)
 def get_params():
 
     # discretization parameters
-    dt = 1e-5  # time discretization. Keep this number low
+    dt = 1e-3  # time discretization. Keep this number low
     N = 360 # inverse space discretization. Keep this number high!
 
     # model-specific parameters
@@ -19,7 +19,7 @@ def get_params():
     beta = 1.0  # 1/kT
     m = 1.0  # mass
 
-    E = 8.0 # energy scale of system
+    E = 3.0 # energy scale of system
 
     psi1 = 0.0 # force on system by chemical bath B1
     psi2 = 0.0 # force on system by chemical bath B2
@@ -77,7 +77,7 @@ def main():
 
     print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Launching reference simulation...")
     fd_mod.fdiff.get_steady_state(
-        positions, dt, n/1.0, E, psi1+psi2, check_step, p_ss, N
+        dx, positions, dt, n/1.0, E, psi1+psi2, check_step, p_ss, N
     )
     # L = zeros((N,N), order="F")
     # fd_mod.fdiff.calculate_l(
