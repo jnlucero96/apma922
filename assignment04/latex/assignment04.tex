@@ -15,6 +15,7 @@
 \usepackage{framed}
 \usepackage{bm} % boldface greek symbols
 \usepackage{nicefrac}
+\usepackage{upgreek}
 
 % Hyperref
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=red]{hyperref}
@@ -77,6 +78,7 @@
 \begin{document}
 \maketitle
 
+% =================================================================================
 \section*{Problem 1}
 
 \subsection*{Part A}
@@ -92,7 +94,7 @@ Figure~\ref{fig:q1a_figure} shows, in the left subplot, the solution acquired fr
 	\centering
 	\subfloat{\includegraphics[clip, scale=0.3]{q1a_soln_figure.pdf}}
 	\subfloat{\includegraphics[clip, scale=0.3]{q1a_err_figure.pdf}}
-	\caption{[Left] Exact (red line) and computed (black points) solution as a function of $x$ for $N=24$. [Right] Infinity-norm error of the computed solution for $\varepsilon=1$ (blue line) and $\varepsilon=0.01$ (green line) as a function of the number of intervals $N$.}
+	\caption{[Left] Exact (red line) and computed (black points) solution as a function of $x$ for $N=24$ and $\varepsilon=1$. [Right] Infinity-norm error of the computed solution for $\varepsilon=1$ (blue line) and $\varepsilon=0.01$ (green line) as a function of the number of intervals $N$.}
 	\label{fig:q1a_figure}
 \end{figure}
 
@@ -113,6 +115,7 @@ As above, we rescale the domain variable $x\in [-2, 1]$ to a variable $z\in[-1,1
 
 Figure~\ref{fig:q1b_figure} shows, in the left subplot, the solution acquired from the spectral method in the black curve. The right subplot of Fig.~\ref{fig:q1b_figure} we observe that, as we expect, we attain spectral accuracy for this method. To get an accuracy of $10^{-4}$ we observe that we need $N=10$ number of intervals.
 
+% =================================================================================
 \section*{Problem 2}
 
 \subsection*{Part A}
@@ -135,7 +138,7 @@ constitute the remaining two points that bring the total number of points in the
 
 \subsection*{Part C}
 
-Figure~\ref{fig:tchebyshev_err} is a recreation of Output 11 from \textbf{[Tr]}. Here the function $u(x)$ is evaluated on the TChebyshev grid and the TChebyshev differentiation matrix is used to compute the spectral derivative. Figure~\ref{fig:legendre_err} is the recreation of Output 11 except using Legendre points to evaluate the function $u(x)$ and the Legendre differentiation matrix to compute the spectral derivative.
+Figure~\ref{fig:tchebyshev_err} is a recreation of Output 11 from \textbf{[Tr]}. Here the function $u(x)$ is evaluated on the TChebyshev grid and the TChebyshev differentiation matrix is used to compute the spectral derivative. Figure~\ref{fig:legendre_err} is the recreation of Output 11 except using Legendre points to evaluate the function $u(x)$ and the Legendre differentiation matrix to compute the spectral derivative. To get the Legendre points I modified the code I acquired $N-1$ points from \verb|gauss.m| and then manually added the left and right hand end points of $-1$ and $1$, respectively, for a total of $N+1$ points.
 
 \begin{figure}[!h]
 	\centering
@@ -165,5 +168,191 @@ In the right subplot the computed solution for the differential equation $u^{\pr
     \label{fig:q2d_figure}
 \end{figure}
 
+% =================================================================================
+\section*{Problem 3}
+
+\subsection*{Part A}
+As in the discussion we have that the forward Euler method for this problem, with constant step size $k$ produces iterates of the form $U^{n} = (1+k\lambda)^{n}$. As in the problem discussion we have use $N = 200$ with steps of size $k=0.01$. This yields the computed solution 
+\begin{subequations}
+    \begin{align}
+        U^{N} &= (1+(0.01)10)^{200}\\
+        &= (1.1)^{200}\\
+        &\approx \num{1.90e8}.
+    \end{align}
+\end{subequations}
+The true solution is $u(T) = e^{20} \approx \num{4.85e8}$. Thus we observe that for this case the error bound becomes a more reasonable estimate of the error. The Forward-Euler time stepping scheme is implemented in \verb|A4Q3.ipynb|.
+
+\subsection*{Part B}
+The general explicit one-step method takes the form 
+\begin{align}
+    U^{n+1} = U^{n} + k\Psi(U^{n},t_{n},k).\label{eq:one_step_form}.
+\end{align}
+In this case, since $\Psi$ is linear in $u$, we have that 
+\begin{align}
+    \Psi(U^{n},t_{n},k) - \Psi(U^{n},t_{n},k) = \lambda \left[U^{n} - u(t_{n})\right] = \lambda E^{n}.\label{eq:linear_lipschitz}
+\end{align}
+Given this we can then write the global error as
+\begin{subequations}
+    \begin{align}
+        E^{n+1} &= E^{n} + k\left[\Psi(U^{n},t_{n},k) - \Psi(U^{n},t_{n},k)\right] - k\uptau^{n}\\
+        E^{n+1} &= (1+k\lambda)E^{n} - k\uptau^{n}.
+    \end{align}
+\end{subequations}
+By induction we have that 
+\begin{align}
+    E^{n} &= (1+k\lambda)^{n}E^{0} - k\sum\limits_{m=1}^{n}(1+k\lambda)^{n-m}\uptau^{m-1}
+\end{align}
+Taking absolute values, applying triangle inequality, we have
+\begin{align}
+    |E^{n}| &\le |1+k\lambda|^{n}|E^{0}| + k \sum_{m=1}^{n} |1+k\lambda|^{n-m}|\uptau^{m-1}|
+\end{align}
+We thus identify the Lipshitz constant of $\Psi$ as $M = |1+k\lambda|$. Using that $M \le 1$,
+\begin{subequations}
+    \begin{align}
+        |E^{n}| &\le |E^{0}| + k \sum_{m=1}^{n}|\uptau^{m-1}|\\
+        &\le |E^{0}| + t\norm{\uptau}_{\infty},
+    \end{align}
+\end{subequations}
+where we have that $N = T/k$ is the number of time steps needed to reach time $T$ and where we upper bounded the sum of the truncation errors with the maximum truncation error $$\norm{\uptau}_{\infty} = \max_{0\le n\le N-1}{|\uptau^{n}|},$$ as well as using that $t = nk$ from the definition of the total number of time steps. Now for $t \le T$ we can write
+\begin{align}
+    |E^{n}| &\le |E^{0}| + T\norm{\uptau}_{\infty},
+\end{align}
+and stipulating the $|E^{0}| = 0$ then we have 
+\begin{align}
+|E^{n}| &\le T\norm{\uptau}_{\infty},
+\end{align}
+as desired.
+
+\subsection*{Part C}
+We show above that we can take $M = |1+k\lambda|$, and so if we now apply it to the given case we obtain the bound
+\begin{align}
+    |E^{n}| \le 2\cdot \dfrac{1}{2}k\norm{u^{\prime\prime}}_{\infty} = 100
+\end{align}
+which indeed is much better than the one obtained previously as it lacks the exponential term. 
+
+\subsection*{Part D}
+
+\subsubsection*{i)}
+Following the hint, 
+\begin{subequations}
+    \begin{align}
+        |u-u^{*}| &= |\Phi(v) - \Phi(v^{*})|\\
+        &= |g^{-1}(v) - g^{-1}(v^{*})|\\
+        &= |g^{-1}\left(\left[u-kf(u)\right]\right) - g^{-1}\left(\left[u^{*}-kf(u^{*})\right]\right)|
+    \end{align}
+\end{subequations}
+
+\subsubsection*{ii)}
+
+The Backward-Euler discretization of a initial value problem $u^{\prime} = f(u, t)$ is given by
+\begin{align}
+    \dfrac{U^{n+1}-U_{n}}{k} = f(U^{n+1}),
+\end{align}
+and thus can be recast into the form 
+\begin{align}
+    U^{n} = U^{n+1} - kf(U^{n+1}).
+\end{align}
+Then, if we define as in the discussion of the previous part $g(U^{n+1}) := U^{n+1} - kf(U^{n+1})$ so we have
+\begin{align}
+    U^{n} = g(U^{n+1})
+\end{align}
+and subsequently, defining $\Phi(U^{n}) := g^{-1}(U^{n})$, we see that if we apply this function $\Phi$ on both sides of the equation we have that
+\begin{subequations}
+    \begin{align}
+        \Phi(U^{n}) &= \Phi(g(U^{n+1})) \\
+        &= U^{n+1}.
+    \end{align}
+    \label{eq:backward_euler_form}
+\end{subequations}
+Then we see the backward Euler scheme takes the form desired. Since from i) we have that $\Phi$ is Lipschitz continous with Lipschitz constant $\mathcal{L} \le 1$ and we have from Part B that equations of the form~\eqref{eq:backward_euler_form} can have the error be bounded uniformly of the step size thus the backward Euler converges. 
+
+
+
+% =================================================================================
+
+\section*{Problem 4}
+
+\subsection*{Part A}
+
+One way to derive the Adams family of methods is by writing 
+\begin{align}
+	u(t_{n+r}) = u(t_{n+r-1}) + \int_{t_{n+r-1}}^{t_{n+r}}\dd{s} f(u(s))
+\end{align}
+and using a quadrature rule to approximate
+\begin{align}
+	\int_{t_{n+r-1}}^{t_{n+r}}\dd{t}f(u(t)) \approx k\sum_{j=1}^{r-1}\beta_{j}f(u(t_{n+j})).
+\end{align}
+This quadrature rule can be derived by interpolating $f(u(t))$ by a polynomial $p(t)$ of degree $r-1$ at the points $t_{n},t_{n+1},\dots,t_{n+r-1}$ and then integrating the interpolating polynomial. In this case we are interested in interpolating $f(u(t))$ through the points $t-k,t,t+k$. 
+
+The interpolating polynomial in the Lagrange basis is given by, 
+\begin{align}
+	p_{2}(t) = L(t) = \sum_{j=0}^{k}f^{j}l_{j}(t).
+\end{align}
+with basis functions,
+\begin{align}
+	l_{j}(t) = \prod_{\substack{0\le m\le k \\ m\neq j}}\dfrac{t-t_{m}}{t_{j}-t_{m}}.
+\end{align}
+The interpolant is then
+\begin{align}
+	p_{2}(t) &= f^{n-1}\left(\dfrac{t-t_{n}}{t_{n-1}-t_{n}}\right)\left(\dfrac{t-t_{n+1}}{t_{n-1}-t_{n+1}}\right) +  f^{n}\left(\dfrac{t-t_{n-1}}{t_{n}-t_{n-1}}\right)\left(\dfrac{t-t_{n+1}}{t_{n}-t_{n+1}}\right) \nonumber\\
+	&\hspace{8cm}+ 
+	f^{n+1}\left(\dfrac{t-t_{n-1}}{t_{n+1}-t_{n-1}}\right)\left(\dfrac{t-t_{n}}{t_{n+1}-t_{n}}\right)
+\end{align}
+Using that $t_{n-1}=t_{n}-k,t_{n+1}=t_{n}+k$, we have
+\begin{align}
+	p_{2}(t) &= \frac{2f^{n}(k+t-t_{n}) (k-t+t_{n})+(t-t_{n}) (f^{n+1}(k+t-t_{n})-f^{n-1}(k-t+t_{n}))}{2 k^2},
+\end{align}
+and integrating from time step $t_{n}$ to $t_{n}+k$ we then have
+\begin{subequations}
+	\begin{align}
+		\hspace{-1cm}\int_{t_{n+1}}^{t_{n+2}}\dd{t}p_{2}(t) &= \int_{t_{n}+k}^{t_{n}+2k}\dd{t}p_{2}(t)\\
+		&= \frac{(-4f_{n}+2f_{n-1}+2f_{n+1})}{12k^2}t^3 +\frac{(12f_{n}
+		t_{n}-3f_{n-1}k-6f_{n-1}t_{n}+3f_{n+1}k-6f_{n+1}t_{n})}{12 k^2}t^2\nonumber \\ 
+		&\hspace{4cm}\left.+\frac{\left(12f_{n}k^2-12f_{n}t_{n}^2+6
+		f_{n-1} k t_{n}+6 f_{n-1} t_{n}^2-6f_{n+1}k t_{n}+6
+		f_{n+1}t_{n}^2\right)}{12 k^2}t\right|_{t_{n}+k}^{t_{n}+2k}\\
+		&= \dfrac{k}{12}\left(5f^{n-1}-16f^{n}+23f^{n+1}\right)
+	\end{align}
+\end{subequations}
+And so we finally have the three-step Adams-Brashforth scheme
+\begin{subequations}
+	\begin{align}
+		U^{n+2} &= U^{n+1} + \int_{t_{n+1}}^{t_{n+2}}\dd{t}p_{2}(t)\\
+		&= U^{n+2} + \dfrac{k}{12}\left(5f^{n-1}-16f^{n}+23f^{n+1}\right).
+	\end{align}
+\end{subequations}
+We can get it into the form given in the question by simply shifting the index by 1, 
+\begin{align}
+	U^{n+3} &= U^{n+2} + \dfrac{k}{12}\left(5f^{n}-16f^{n+1}+23f^{n+2}\right).
+\end{align}
+
+
+
+
+\subsection*{Part B}
+
+\subsection*{Part C}
+
+\subsection*{Part D}
+
+\subsection*{Part E}
+
+% =================================================================================
+
+\section*{Problem 5}
+
+\subsection*{Part A}
+
+\subsection*{Part B}
+
+\subsection*{Part C}
+
+\subsection*{Part D}
+
+\subsubsection*{i)}
+
+\subsubsection*{ii)}
+
+\subsubsection*{iii)}
 
 \end{document}
