@@ -138,7 +138,7 @@ constitute the remaining two points that bring the total number of points in the
 
 \subsection*{Part C}
 
-Figure~\ref{fig:tchebyshev_err} is a recreation of Output 11 from \textbf{[Tr]}. Here the function $u(x)$ is evaluated on the TChebyshev grid and the TChebyshev differentiation matrix is used to compute the spectral derivative. Figure~\ref{fig:legendre_err} is the recreation of Output 11 except using Legendre points to evaluate the function $u(x)$ and the Legendre differentiation matrix to compute the spectral derivative. To get the Legendre points I modified the code I acquired $N-1$ points from \verb|gauss.m| and then manually added the left and right hand end points of $-1$ and $1$, respectively, for a total of $N+1$ points.
+Figure~\ref{fig:tchebyshev_err} is a recreation of Output 11 from \textbf{[Tr]}. Here the function $u(x)$ is evaluated on the TChebyshev grid and the TChebyshev differentiation matrix is used to compute the spectral derivative. Figure~\ref{fig:legendre_err} is the recreation of Output 11 except using Legendre points to evaluate the function $u(x)$ and the Legendre differentiation matrix to compute the spectral derivative. 
 
 \begin{figure}[!h]
 	\centering
@@ -238,9 +238,17 @@ Following the hint,
     \begin{align}
         |u-u^{*}| &= |\Phi(v) - \Phi(v^{*})|\\
         &= |g^{-1}(v) - g^{-1}(v^{*})|\\
-        &= |g^{-1}\left(\left[u-kf(u)\right]\right) - g^{-1}\left(\left[u^{*}-kf(u^{*})\right]\right)|
+        &= |g^{-1}\left(\left[u-kf(u)\right]\right) - g^{-1}\left(\left[u^{*}-kf(u^{*})\right]\right)|\\
+        &= |v-kf(v) - v^{*} + kf(v^{*})|\label{eq:3d_b4_tr}\\
+        &\le |v-v^{*}| + k|f(v)-f(v^{*})|\label{eq:3d_aft_tr}\\
+        &\le (1+kL) |v-v^{*}|\label{eq:3d_last},
     \end{align}
 \end{subequations}
+where in going from~\eqref{eq:3d_b4_tr} to~\eqref{eq:3d_aft_tr} we used the triangle inequality and going from~\eqref{eq:3d_aft_tr} to~\eqref{eq:3d_last} we used the Lipschitz continuity of $f$ . If $0<k<1/L$ then this can be further upper bounded by
+\begin{align}
+    |u-u^{*}|= |\Phi(v) - \Phi(v^{*})| \le \dfrac{1}{1-kL}|v-v^{*}|
+\end{align}
+Thus we see that $\Phi$ is Lipschitz continuous with Lipschitz constant $(1-kL)^{-1}$.
 
 \subsubsection*{ii)}
 
@@ -265,8 +273,6 @@ and subsequently, defining $\Phi(U^{n}) := g^{-1}(U^{n})$, we see that if we app
     \label{eq:backward_euler_form}
 \end{subequations}
 Then we see the backward Euler scheme takes the form desired. Since from i) we have that $\Phi$ is Lipschitz continous with Lipschitz constant $\mathcal{L} \le 1$ and we have from Part B that equations of the form~\eqref{eq:backward_euler_form} can have the error be bounded uniformly of the step size thus the backward Euler converges. 
-
-
 
 % =================================================================================
 
@@ -298,35 +304,65 @@ The interpolant is then
 	&\hspace{8cm}+ 
 	f^{n+1}\left(\dfrac{t-t_{n-1}}{t_{n+1}-t_{n-1}}\right)\left(\dfrac{t-t_{n}}{t_{n+1}-t_{n}}\right)
 \end{align}
-Using that $t_{n-1}=t_{n}-k,t_{n+1}=t_{n}+k$, we have
+Using that $t_{n-1}=t_{n}-k,t_{n+1}=t_{n}+k$, the interpolating polynomial is then we have
 \begin{align}
-	p_{2}(t) &= \frac{2f^{n}(k+t-t_{n}) (k-t+t_{n})+(t-t_{n}) (f^{n+1}(k+t-t_{n})-f^{n-1}(k-t+t_{n}))}{2 k^2},
+	p_{2}(t) &= \frac{(-2 f_{n}+f_{n-1}+f_{n+1})}{2 k^2}t^{2}+\frac{(4 f^{n}t_{n}-f^{n-1} k-2 f^{n-1} t_{n}+f^{n+1} k-2 f^{n+1}t_{n})}{2 k^2}t \nonumber\\
+    &\hspace{5cm}+\frac{2 f^{n} k^2-2 f^{n} t_{n}^2+f^{n-1} kt_{n}+f^{n-1} t_{n}^2-f^{n+1} k t_{n}+f^{n+1} t_{n}^2}{2k^2}.
 \end{align}
-and integrating from time step $t_{n}$ to $t_{n}+k$ we then have
+
+\newpage
+
+\subsubsection*{3-step Adams-Bashforth method}
+Integrating from time step $t_{n}+k$ to $t_{n}+2k$ we then have
 \begin{subequations}
 	\begin{align}
 		\hspace{-1cm}\int_{t_{n+1}}^{t_{n+2}}\dd{t}p_{2}(t) &= \int_{t_{n}+k}^{t_{n}+2k}\dd{t}p_{2}(t)\\
-		&= \frac{(-4f_{n}+2f_{n-1}+2f_{n+1})}{12k^2}t^3 +\frac{(12f_{n}
-		t_{n}-3f_{n-1}k-6f_{n-1}t_{n}+3f_{n+1}k-6f_{n+1}t_{n})}{12 k^2}t^2\nonumber \\ 
-		&\hspace{4cm}\left.+\frac{\left(12f_{n}k^2-12f_{n}t_{n}^2+6
-		f_{n-1} k t_{n}+6 f_{n-1} t_{n}^2-6f_{n+1}k t_{n}+6
-		f_{n+1}t_{n}^2\right)}{12 k^2}t\right|_{t_{n}+k}^{t_{n}+2k}\\
-		&= \dfrac{k}{12}\left(5f^{n-1}-16f^{n}+23f^{n+1}\right)
+		&= \frac{(-4f^{n}+2f^{n-1}+2f^{n+1})}{12k^2}t^3 +\frac{(12f^{n}
+		t_{n}-3f^{n-1}k-6f^{n-1}t_{n}+3f^{n+1}k-6f^{n+1}t_{n})}{12 k^2}t^2\nonumber \\ 
+		&\hspace{4cm}\left.+\frac{\left(12f^{n}k^2-12f^{n}t_{n}^2+6
+		f^{n-1} k t_{n}+6 f^{n-1} t_{n}^2-6f^{n+1}k t_{n}+6
+		f^{n+1}t_{n}^2\right)}{12 k^2}t\right|_{t_{n}+k}^{t_{n}+2k}\\
+		&= \dfrac{k}{12}\left(5f^{n-1}-16f^{n}+23f^{n+1}\right).
 	\end{align}
 \end{subequations}
-And so we finally have the three-step Adams-Brashforth scheme
+Thus we obain the three-step Adams-Bashforth scheme
 \begin{subequations}
 	\begin{align}
 		U^{n+2} &= U^{n+1} + \int_{t_{n+1}}^{t_{n+2}}\dd{t}p_{2}(t)\\
-		&= U^{n+2} + \dfrac{k}{12}\left(5f^{n-1}-16f^{n}+23f^{n+1}\right).
+		&= U^{n+2} + \dfrac{k}{12}\left(5f^{n-1}-16f^{n}+23f^{n+1}\right),
 	\end{align}
 \end{subequations}
-We can get it into the form given in the question by simply shifting the index by 1, 
+which we can get into the form given in the question by simply shifting the index by 1, 
 \begin{align}
 	U^{n+3} &= U^{n+2} + \dfrac{k}{12}\left(5f^{n}-16f^{n+1}+23f^{n+2}\right).
 \end{align}
 
+\subsubsection*{2-step Adams-Moulton method}
+Integrating the interpolating polynomial from $t_{n}$ to $t_{n}+k$ instead we now have
+\begin{subequations}
+    \begin{align}
+    \hspace{-1cm}\int_{t_{n}}^{t_{n+1}}\dd{t}p_{2}(t) &= \int_{t_{n}}^{t_{n}+k}\dd{t}p_{2}(t)\\
+    &= \frac{(-4f^{n}+2f^{n-1}+2f^{n+1})}{12k^2}t^3 +\frac{(12f^{n}
+        t_{n}-3f^{n-1}k-6f^{n-1}t_{n}+3f^{n+1}k-6f^{n+1}t_{n})}{12 k^2}t^2\nonumber \\ 
+    &\hspace{4cm}\left.+\frac{\left(12f^{n}k^2-12f^{n}t_{n}^2+6
+        f^{n-1} k t_{n}+6 f^{n-1} t_{n}^2-6f^{n+1}k t_{n}+6
+        f^{n+1}t_{n}^2\right)}{12 k^2}t\right|_{t_{n}}^{t_{n}+k}\\
+    &= \dfrac{k}{12}\left(-f^{n-1}+8f^{n}+5f^{n+1}\right).
+    \end{align}
+\end{subequations}
+And so we obtain the two-step Adams-Moulton scheme
+\begin{subequations}
+    \begin{align}
+        U^{n+1} &= U^{n} + \int_{t_{n}}^{t_{n+1}}\dd{t}p_{2}(t)\\
+        &= U^{n} + \dfrac{k}{12}(-f^{n-1}+8f^{n}+5f^{n+1}),
+    \end{align}
+\end{subequations}
+which can be translated into the form given by a simple shift of index to the desired form
+\begin{align}
+    U^{n+2} = U^{n+1} + \dfrac{k}{12}(-f^{n}+8f^{n+1}+5f^{n+2}).
+\end{align}
 
+\subsubsection*{2-step backward differentiation formula (BDF) method}
 
 
 \subsection*{Part B}
