@@ -1,8 +1,15 @@
 #!/usr/bin/env python
 
 from math import pi
-from numpy import finfo, asarray, zeros, linspace, set_printoptions, diag
+from numpy import (
+    finfo, asarray, zeros, linspace, set_printoptions, diag, ones 
+    )
 from datetime import datetime
+
+from initialize import problem_1D
+
+from os import mkdir
+from os.path import isdir
 
 import fd_mod
 
@@ -19,7 +26,7 @@ def get_params():
     beta = 1.0  # 1/kT
     m = 1.0  # mass
 
-    E = 3.0 # energy scale of system
+    E = 2.0 # energy scale of system
 
     psi1 = 0.0 # force on system by chemical bath B1
     psi2 = 0.0 # force on system by chemical bath B2
@@ -29,7 +36,7 @@ def get_params():
     return ( dt, N, gamma, beta, m, E, psi1, psi2, n )
 
 def save_data_reference(
-    E, psi1, psi2, n, p_now, p_equil,
+    E, psi1, psi2, n, positions, p_ss, p_initial, p_equil,
     potential_at_pos, drift_at_pos, diffusion_at_pos, N
     ):
 
@@ -37,10 +44,16 @@ def save_data_reference(
     data_filename = f'/reference_E_{E}_psi1_{psi1}_psi2_{psi2}_n_{n}_outfile.dat'
     data_total_path = target_dir + data_filename
 
+    if not isdir(target_dir):
+        print("Target directory doesn't exist. Making it now")
+        mkdir(target_dir)
+
     with open(data_total_path, 'w') as dfile:
         for i in range(N):
             dfile.write(
-                f"{p_now[i]:.15e}"
+                f"{positions[i]:.15e}"
+                + "\t" + f"{p_ss[i]:.15e}"
+                + '\t' + f"{p_initial[i]:.15e}"
                 + '\t' + f"{p_equil[i]:.15e}"
                 + '\t' + f"{potential_at_pos[i]:.15e}"
                 + '\t' + f"{drift_at_pos[i]:.15e}"
@@ -72,20 +85,21 @@ def main():
 
     print(f"Number of times before check = {check_step}")
 
-    positions = linspace(0.0, (2*pi)-dx, N)
+    # set initial distribution to be the uniform distribution
+    p_initial = ones(N, order="F")/N
+    # initialize array which holds the steady state distribution
     p_ss = zeros(N, order="F")
 
+    problem_object = problem_1D(
+        n=N, E=E, num_minima=n, D=1./(m*gamma), psi=psi1+psi2,
+        mode="cs_addif"
+        )
+    
     print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Launching reference simulation...")
-    fd_mod.fdiff.get_steady_state(
-        dx, positions, dt, n/1.0, E, psi1+psi2, check_step, p_ss, N
+    fd_mod.fdiff.get_steady_ft(
+        dt, problem_object.L, check_step, p_initial, p_ss
     )
-    # L = zeros((N,N), order="F")
-    # fd_mod.fdiff.calculate_l(
-    #     positions, n/1.0, E, psi1+psi2, L, N
-    # )
-    # print(L)
     print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Reference simulation done!")
-
 
     print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Processing data...")
 
@@ -99,13 +113,13 @@ def main():
 
     print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Processing finished!")
 
-    # # write to file
-    # print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Saving data...")
-    # save_data_reference(
-    #     E, psi1, psi2, n, p_now, p_equil,
-    #     potential_at_pos, drift_at_pos, diffusion_at_pos, N
-    #     )
-    # print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Saving completed!")
+    # write to file
+    print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Saving data...")
+    save_data_reference(
+        E, psi1, psi2, n, problem_object.theta, p_ss, p_initial, problem_object.p_equil,
+        problem_object.Epot, problem_object.mu, problem_object.D, N
+        )
+    print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Saving completed!")
 
     print("Exiting...")
 
