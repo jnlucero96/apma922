@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
 from math import pi
-from numpy import array, linspace, zeros, ones, diag, sin, cos, exp
+from numpy import (
+    array, linspace, zeros, ones, diag, sin, cos, exp, arange, tan
+    )
+from scipy.linalg import toeplitz
 
 # =================== ONE DIMENSIONAL PROBLEMS ==============================
 
@@ -34,6 +37,11 @@ class problem_1D(object):
         # select method of solution
         if (self.mode.lower() == "cs_addif"):
             self.L = self.cs_addif_1D_init()
+        elif (self.mode.lower() == "spec_addif"):
+            self.L = self.spec_addif_1D_init()
+        else:
+            print("Mode input not understood! Exiting now")
+            exit(1)
 
     def potential(self):
         return 0.5*self.Edagger*(1.0-cos(self.num_minima*self.theta))
@@ -88,9 +96,28 @@ class problem_1D(object):
 
         return self.D*(-D1+D2)
 
-    # # Spectral-Space Advection-Diffusion
-    # def spec_addif_1d_init():
-    #     return L
+
+    # Spectral-Space Advection-Diffusion
+    def spec_addif_1D_init(self):
+
+        D1 = zeros((self.n,self.n),order="F")
+        D2 = zeros((self.n,self.n),order="F")
+
+        jj = arange(1,self.n)
+
+        col = zeros(self.n)
+        col[1:] = (0.5*(-1.0)**jj)/tan(0.5*jj*self.dx)
+        row = zeros(self.n)
+        row[0] = col[0]
+        row[1:] = col[self.n-1:0:-1]
+        D1[...] = toeplitz(col, row)*self.mu
+
+        column = zeros(self.n)
+        column[0] = -((pi**2)/(3*(self.dx**2))+(1./6))
+        column[1:] = -0.5*((-1)**jj)/(sin(0.5*jj*self.dx)**2)
+        D2[...] = toeplitz(column)
+
+        return self.D*(-D1+D2)
 
 # =================== TWO DIMENSIONAL PROBLEMS ==============================
 

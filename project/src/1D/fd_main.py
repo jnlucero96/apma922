@@ -2,7 +2,8 @@
 
 from math import pi
 from numpy import (
-    finfo, asarray, zeros, linspace, set_printoptions, diag, ones 
+    finfo, asarray, zeros, linspace, set_printoptions, diag, ones,
+    cos, sin
     )
 from datetime import datetime
 
@@ -18,22 +19,24 @@ set_printoptions(linewidth=500)
 def get_params():
 
     # discretization parameters
-    dt = 1e-3  # time discretization. Keep this number low
-    N = 360 # inverse space discretization. Keep this number high!
+    dt = 1e-2  # time discretization. Keep this number low
+    N = 720 # inverse space discretization. Keep this number high!
 
     # model-specific parameters
     gamma = 1000.0  # drag
     beta = 1.0  # 1/kT
     m = 1.0  # mass
 
-    E = 2.0 # energy scale of system
+    E = 256.0 # energy scale of system
 
     psi1 = 0.0 # force on system by chemical bath B1
     psi2 = 0.0 # force on system by chemical bath B2
 
     n = 3.0 # number of minima in system potential
 
-    return ( dt, N, gamma, beta, m, E, psi1, psi2, n )
+    mode = "spec_addif"
+
+    return ( dt, N, gamma, beta, m, E, psi1, psi2, n, mode )
 
 def save_data_reference(
     E, psi1, psi2, n, positions, p_ss, p_initial, p_equil,
@@ -64,20 +67,20 @@ def save_data_reference(
 def main():
 
     # unload parameters
-    [ dt, N, gamma, beta, m, E, psi1, psi2, n ] = get_params()
+    [ dt, N, gamma, beta, m, E, psi1, psi2, n, mode ] = get_params()
 
     # calculate derived discretization parameters
     dx = (2*pi)/N  # space discretization: total distance / number of points
 
-    # provide CSL criteria to make sure simulation doesn't blow up
-    if E == 0.0:
-        time_check = 100000000.0
-    else:
-        time_check = dx*m*gamma / (3*E)
+    # # provide CSL criteria to make sure simulation doesn't blow up
+    # if E == 0.0:
+    #     time_check = 100000000.0
+    # else:
+    #     time_check = dx*m*gamma / (3*E)
 
-    if dt > time_check:
-        print("!!!TIME UNSTABLE!!! No use in going on. Aborting...\n")
-        exit(1)
+    # if dt > time_check:
+    #     print("!!!TIME UNSTABLE!!! No use in going on. Aborting...\n")
+    #     exit(1)
 
     # how many time update steps before checking for steady state convergence
     # enforce steady state convergence check every unit time
@@ -91,13 +94,15 @@ def main():
     p_ss = zeros(N, order="F")
 
     problem_object = problem_1D(
-        n=N, E=E, num_minima=n, D=1./(m*gamma), psi=psi1+psi2,
-        mode="cs_addif"
+        n=N, E=E, num_minima=n, D=1./(m*gamma), psi=psi1+psi2, mode=mode
         )
-    
+
     print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Launching reference simulation...")
-    fd_mod.fdiff.get_steady_ft(
-        dt, problem_object.L, check_step, p_initial, p_ss
+    # fd_mod.fdiff.get_steady_ft(
+    #     dt, problem_object.L, check_step, p_initial, p_ss, problem_object.n
+    # )
+    fd_mod.fdiff.get_steady_gl10(
+        dt, problem_object.L, check_step, p_initial, p_ss, problem_object.n
     )
     print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Reference simulation done!")
 
