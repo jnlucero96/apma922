@@ -35,7 +35,15 @@ class problem_1D(object):
         self.p_equil = exp(-self.Epot)/exp(-self.Epot).sum()
 
         # select method of solution
-        if (self.mode.lower() == "cs_addif"):
+        if (self.mode.lower() == "cs_advective"):
+            self.L = self.cs_advective_1D_init()
+        elif (self.mode.lower() == "spec_advective"):
+            self.L = self.spec_advective_1D_init()
+        elif (self.mode.lower() == "cs_diffusion"):
+            self.L = self.cs_diffusion_1D_init()
+        elif (self.mode.lower() == "spec_diffusion"):
+            self.L = self.spec_diffusion_1D_init()
+        elif (self.mode.lower() == "cs_addif"):
             self.L = self.cs_addif_1D_init()
         elif (self.mode.lower() == "spec_addif"):
             self.L = self.spec_addif_1D_init()
@@ -55,23 +63,60 @@ class problem_1D(object):
 
     # ====================== ADVECTION OPERATORS =============================
 
-    # # Central-Space Advection
-    # def cs_advective_1D_init():
-    #     return L
+    # Central-Space Advection
+    def cs_advective_1D_init(self):
 
-    # # Central-Space Diffusion
-    # def cs_diffusion_1D_init():
-    #     return L
+        D1 = zeros((self.n,self.n), order="F")
+
+        # define first-derivative matrix based on centered difference
+        D1[...] = -diag(self.mu[:-1],-1) + diag(zeros(self.n)) + diag(self.mu[1:],1)
+        D1[0,-1] = -self.mu[-1]; D1[-1,0] = self.mu[0] #enforce periodicity
+
+        return D1
+
+    # Central-Space Advection
+    def spectral_diffusion_1D_init(self):
+
+        D1 = zeros((self.n,self.n),order="F")
+
+        jj = arange(1,self.n)
+
+        col = zeros(self.n)
+        col[1:] = (0.5*(-1.0)**jj)/tan(0.5*jj*self.dx)
+        row = zeros(self.n)
+        row[0] = col[0]
+        row[1:] = col[self.n-1:0:-1]
+        D1[...] = toeplitz(col, row)*self.mu
+
+        return D1
 
     # ====================== DIFFUSION OPERATORS =============================
 
-    # # Spectral-Space Diffusion
-    # def spec_diffusion_1D_init():
-    #     return L
+    # Central-Space Diffusion
+    def cs_diffusion_1D_init(self):
+        D2 = zeros((self.n,self.n), order="F")
 
-    # # Spectral-Space Diffusion
-    # def spec_diffusion_1D_init():
-    #     return L
+        # define central-space differentiation matrix
+        D2[...] = diag(ones(self.n-1),-1) + diag(-2.0*ones(self.n)) + diag(ones(self.n-1),1)
+        D2[0,-1] = 1.0; D2[-1,0] = 1.0 # enforce periodicity
+
+        # scale the matrices appropriately
+        D2 /= self.dx**2
+
+        return D2
+
+    # Spectral-Space Diffusion
+    def spec_diffusion_1D_init(self):
+        jj = arange(1,self.n)
+
+        D2 = zeros((self.n,self.n),order="F")
+
+        column = zeros(self.n)
+        column[0] = -((pi**2)/(3*(self.dx**2))+(1./6))
+        column[1:] = -0.5*((-1)**jj)/(sin(0.5*jj*self.dx)**2)
+        D2[...] = toeplitz(column)
+
+        return D2
 
     # ================= ADVECTION-DIFFUSION OPERATORS ======================
 
@@ -95,7 +140,6 @@ class problem_1D(object):
         D2 /= self.dx**2
 
         return self.D*(-D1+D2)
-
 
     # Spectral-Space Advection-Diffusion
     def spec_addif_1D_init(self):
@@ -121,34 +165,177 @@ class problem_1D(object):
 
 # =================== TWO DIMENSIONAL PROBLEMS ==============================
 
-# # define drift vector
-# def drift_2D():
-#     return 0
+class problem_2D(object):
 
-# # define the diffusion coefficient
-# def diffusion_2D():
-#     return 0
+    def __init__(
+        self, n=360, m=360, 
+        E0=2.0, Ec=8.0, E1=2.0, 
+        num_minima0=3.0, num_minima1=3.0
+        D=0.001, psi1=0.0, mode="cs_addif"
+        ):
 
-# # Central-Space Advection
-# def cs_advective_2D_init():
-#     return 0
+        # unload the variables
+        self.n = n # number of points in x
+        self.m = m # number of points in y
+        # barrier heights
+        self.E0 = E0 
+        self.Ec = Ec
+        self.E1 = E1
+        # periodicity of potential
+        self.num_minima0 = num_minima0 
+        self.num_minima1 = num_minima1
 
-# # Central-Space Diffusion
-# def cs_diffusion_2D_init():
-#     return 0
+        self.D = D*ones((self.n*self.m,self.n*self.m)) # diffusion tensor 
+        self.psi0 = psi0
+        self.psi1 = psi1
 
-# # Spectral-Space Diffusion
-# def spec_diffusion_2D_init():
-#     return 0
+        self.mode = mode # method of solution
 
-# # Spectral-Space Diffusion
-# def spec_diffusion_2D_init():
-#     return 0
+        # compute the derived variables
+        # discretization
+        self.dx = (2*pi)/self.n
+        self.dy = (2*pi)/self.m
+        # grid
+        self.theta0 = linspace(0.0, 2.0*pi-self.dx, self.n)
+        self.theta1 = linspace(0.0, 2.0*pi-self.dy, self.m)
 
-# # Central-Space Advection-Diffusion
-# def cs_addif_2D_init():
-#     return 0
+        self.mu = self.drift() # drift matrix
+        self.Epot = self.potential() # potential landscape
 
-# # Spectral-Space Advection-Diffusion
-# def spec_addif_2d_init():
-#     return 0
+        # define equilibrium distribution
+        self.p_equil = exp(-self.Epot)/exp(-self.Epot).sum()
+
+        # select method of solution
+        if (self.mode.lower() == "cs_advective"):
+            self.L = self.cs_advective_2D_init()
+        elif (self.mode.lower() == "spec_advective"):
+            self.L = self.spec_advective_2D_init()
+        elif (self.mode.lower() == "cs_diffusion"):
+            self.L = self.cs_diffusion_2D_init()
+        elif (self.mode.lower() == "spec_diffusion"):
+            self.L = self.spec_diffusion_2D_init()
+        elif (self.mode.lower() == "cs_addif"):
+            self.L = self.cs_addif_2D_init()
+        elif (self.mode.lower() == "spec_addif"):
+            self.L = self.spec_addif_2D_init()
+        else:
+            print("Mode input not understood! Exiting now")
+            exit(1)
+
+    def potential(self):
+        return 0.5*self.Edagger*(1.0-cos(self.num_minima*self.theta))
+
+    # define drift vector
+    def drift(self):
+        return -(
+            0.5*self.Edagger*self.num_minima*sin(self.num_minima*self.theta)
+            -self.psi
+            )
+
+    # ====================== ADVECTION OPERATORS =============================
+
+    # Central-Space Advection
+    def cs_advective_2D_init(self):
+
+        D1 = zeros((self.n,self.n), order="F")
+
+        # define first-derivative matrix based on centered difference
+        D1[...] = -diag(self.mu[:-1],-1) + diag(zeros(self.n)) + diag(self.mu[1:],1)
+        D1[0,-1] = -self.mu[-1]; D1[-1,0] = self.mu[0] #enforce periodicity
+
+        return D1
+
+    # Central-Space Advection
+    def spectral_diffusion_2D_init(self):
+
+        D1 = zeros((self.n,self.n),order="F")
+
+        jj = arange(1,self.n)
+
+        col = zeros(self.n)
+        col[1:] = (0.5*(-1.0)**jj)/tan(0.5*jj*self.dx)
+        row = zeros(self.n)
+        row[0] = col[0]
+        row[1:] = col[self.n-1:0:-1]
+        D1[...] = toeplitz(col, row)*self.mu
+
+        return D1
+
+    # ====================== DIFFUSION OPERATORS =============================
+
+    # Central-Space Diffusion
+    def cs_diffusion_2D_init(self):
+        D2 = zeros((self.n,self.n), order="F")
+
+        # define central-space differentiation matrix
+        D2[...] = diag(ones(self.n-1),-1) + diag(-2.0*ones(self.n)) + diag(ones(self.n-1),1)
+        D2[0,-1] = 1.0; D2[-1,0] = 1.0 # enforce periodicity
+
+        # scale the matrices appropriately
+        D2 /= self.dx**2
+
+        return D2
+
+    # Spectral-Space Diffusion
+    def spec_diffusion_2D_init(self):
+        jj = arange(1,self.n)
+
+        D2 = zeros((self.n,self.n),order="F")
+
+        column = zeros(self.n)
+        column[0] = -((pi**2)/(3*(self.dx**2))+(1./6))
+        column[1:] = -0.5*((-1)**jj)/(sin(0.5*jj*self.dx)**2)
+        D2[...] = toeplitz(column)
+
+        return D2
+
+    # ================= ADVECTION-DIFFUSION OPERATORS ======================
+
+    # Central-Space Advection-Diffusion
+    def cs_addif_2D_init(self):
+
+        # initialize the differentiation matrices
+        # x1-direction
+        D1x1 = zeros((self.n,self.n), order="F")
+        D2x1 = zeros((self.n,self.n), order="F")
+        Ix1 = eye(self.n)
+        # x2-direction
+        D1x2 = zeros((self.m,self.m), order="F")
+        D2x2 = zeros((self.m,self.m), order="F")
+        Ix2 = eye(self.m)
+
+        # define first-derivative matrix based on centered difference
+        D1[...] = -diag(self.mu[:-1],-1) + diag(zeros(self.n)) + diag(self.mu[1:],1)
+        D1[0,-1] = -self.mu[-1]; D1[-1,0] = self.mu[0] #enforce periodicity
+
+        # define central-space differentiation matrix
+        D2[...] = diag(ones(self.n-1),-1) + diag(-2.0*ones(self.n)) + diag(ones(self.n-1),1)
+        D2[0,-1] = 1.0; D2[-1,0] = 1.0 # enforce periodicity
+
+        # scale the matrices appropriately
+        D1 /= 2.0*self.dx
+        D2 /= self.dx**2
+
+        return self.D*(-D1+D2)
+
+    # Spectral-Space Advection-Diffusion
+    def spec_addif_2D_init(self):
+
+        D1 = zeros((self.n,self.n),order="F")
+        D2 = zeros((self.n,self.n),order="F")
+
+        jj = arange(1,self.n)
+
+        col = zeros(self.n)
+        col[1:] = (0.5*(-1.0)**jj)/tan(0.5*jj*self.dx)
+        row = zeros(self.n)
+        row[0] = col[0]
+        row[1:] = col[self.n-1:0:-1]
+        D1[...] = toeplitz(col, row)*self.mu
+
+        column = zeros(self.n)
+        column[0] = -((pi**2)/(3*(self.dx**2))+(1./6))
+        column[1:] = -0.5*((-1)**jj)/(sin(0.5*jj*self.dx)**2)
+        D2[...] = toeplitz(column)
+
+        return self.D*(-D1+D2)
