@@ -363,15 +363,142 @@ which can be translated into the form given by a simple shift of index to the de
 \end{align}
 
 \subsubsection*{2-step backward differentiation formula (BDF) method}
-
+To acquire the backward differentiation formula, rather than fit a polynomial through the right-hand side $f(u(t),t)$, we instead fit a polynomial interpolant through $u$ at points $t_{n}-k, t_{n}, t_{n}+k$ and search for the linear combination that gives the approximation to the derivative at $t_{n}+k$. To make this a bit easier, we instead fit the polynomial through points $t_{n}-2k, t_{n}-k, t_{n}$ and search for the approximation to the derivative at $t_{n}$. So we are interested in finding the coefficients of the linear combination that gives 
+\begin{align}
+	u^{\prime}(t_{n}) = au(t_{n}) + bu(t_{n}-k) +cu(t_{n}-2k).
+\end{align}
+Taylor expanding the right hand side in powers of $k$ we have
+\begin{align}
+	\hspace{-1cm}au(t_{n}) + bu(t_{n}-k) +cu(t_{n}-2k) &= (a+b+c)u(t_{n})-(b+2c)ku^{\prime}(t_{n})
+	+\left(\frac{1}{2}b+2c\right)k^2 u^{\prime\prime}(t_{n})\nonumber\\
+	&\hspace{6cm}-\left(\frac{1}{6}b+\frac{4}{3}c\right)k^3 u^{\prime\prime\prime}(t_{n}) + \bO(k^{4}).
+\end{align}
+Therefore we have a system of equations
+\begin{subequations}
+	\begin{align}
+		a+b+c &= 0\\
+		b+2c &= -\dfrac{1}{k}\\
+		\dfrac{1}{2}b+2c &= 0,
+	\end{align}
+\end{subequations}
+which has the solution $$a = \dfrac{3}{2k},\ b = -\dfrac{4}{2k},\ c=\dfrac{1}{2k}. $$
+Thus
+\begin{align}
+	u^{\prime}(t_{n}) = \dfrac{1}{2k}\left[3u(t_{n}) - 4u(t_{n}-k) +u(t_{n}-2k)\right],
+\end{align}
+and using that $u^{\prime}(t_{n}) = f(u(t_{n}),t_{n})$ then we reacquire the BDF formula
+\begin{align}
+	3u(t_{n}) - 4u(t_{n}-k) +u(t_{n}-2k) = 2kf(u(t_{n}),t_{n}),
+\end{align}
+or equivalently
+\begin{align}
+	3U^{n} - 4U^{n-1} + U^{n-2} = 2kf^{n}.
+\end{align}
+To get it into the form given then we shift the index by 2, 
+\begin{align}
+	3U^{n+2} - 4U^{n+1} + U^{n} = 2kf^{n+2}.
+\end{align}
 
 \subsection*{Part B}
 
+\subsubsection*{AB3 formula}
+The general LTE formula for LMMs is given by 
+\begin{align}
+	\tau\left(t_{n+r}\right)=\frac{1}{k} &\left(\sum_{j=0}^{r} \alpha_{j}\right) u\left(t_{n}\right)+\left(\sum_{j=0}^{r}\left(j \alpha_{j}-\beta_{j}\right)\right) u^{\prime}\left(t_{n}\right) \nonumber\\ &+k\left(\sum_{j=0}^{r}\left(\frac{1}{2} j^{2} \alpha_{j}-j \beta_{j}\right)\right) u^{\prime \prime}\left(t_{n}\right) \nonumber\\
+	&+k^{2}\left(\sum_{j=0}^{r}\left(\frac{1}{6} j^{3} \alpha_{j}-\frac{1}{2} j^{2} \beta_{j}\right)\right) u^{\prime\prime\prime}\left(t_{n}\right) \nonumber\\
+	&+k^{3}\left(\sum_{j=0}^{r}\left(\frac{1}{24} j^{4} \alpha_{j}-\frac{1}{6} j^{3} \beta_{j}\right)\right) u^{\prime\prime\prime\prime}\left(t_{n}\right)\nonumber\\
+	&+\cdots+k^{q-1}\left(\sum_{j=0}^{r}\left(\frac{1}{q !} j^{q} \alpha_{j}-\frac{1}{(q-1) !} j^{q-1} \beta_{j}\right)\right) u^{(q)}\left(t_{n}\right)+\cdots\label{eq:gen_trunc_err}
+\end{align}
+To derive the AB3 formula we impose the regular consistency conditions, 
+\begin{align}
+	\sum_{j=0}^{3} \alpha_{j}=0 \quad \text { and } \quad \sum_{j=0}^{3} \left(j \alpha_{j}-\beta_{j}\right)=0,
+\end{align}
+as well as that 
+\begin{align}
+	\sum_{j=0}^{3}\left(\frac{1}{2} j^{2} \alpha_{j}-j \beta_{j}\right) = 0\quad \text{ and }\quad \sum_{j=0}^{3}\left(\frac{1}{3} j^{3} \alpha_{j}- j^{2} \beta_{j}\right) = 0
+\end{align}
+and given that $\alpha_{3} = 1,\ \alpha_{2} = -1,\ \alpha_{1} = \alpha_{0} = \beta_{3} = 0$,
+solving these three equations for the $\beta_{r}$ yields, as expected
+\begin{subequations}
+	\begin{align}
+		\beta_{2} = \dfrac{23}{12},\ &\beta_{1} = -\dfrac{16}{12},\ \beta_{0}=\dfrac{5}{12}.
+	\end{align}
+\end{subequations}
+Here $\beta_{3} = 0$ since the method is explicit. Substituting these set of $\alpha_{r}$ and $\beta_{r}$ values into the equations shows that these do indeed satisfy the equations. 
+
+\subsubsection*{AM2 formula}
+To derive the AM2 formula we impose the conditions above,
+\begin{align}
+	\sum_{j=0}^{2} \alpha_{j}=0, \quad \sum_{j=0}^{2} \left(j \alpha_{j}-\beta_{j}\right)=0 \quad \text { and }\quad \sum_{j=0}^{2}\left(\frac{1}{2} j^{2} \alpha_{j}-j \beta_{j}\right) = 0,
+\end{align}
+as well as that 
+\begin{align}
+	\sum_{j=0}^{2}\left(\frac{1}{6} j^{3} \alpha_{j}-\frac{1}{2} j^{2} \beta_{j}\right) = 0,
+\end{align}
+and given that $\alpha_{2} = 1,\ \alpha_{1} = -1,\ \alpha_{0} = 0$, solving these three equations for set of the $\beta_{r}$ yields, as expected
+\begin{align}
+	\beta_{2} = \dfrac{5}{12},\ \beta_{1} &= \dfrac{8}{12},\ \beta_{0} = -\dfrac{1}{12}.
+\end{align}
+Like above, substituting these set of $\alpha_{r}$ and $\beta_{r}$ values into the equations shows that these do indeed satisfy the equations. 
+
+\subsubsection*{BDF2 formula}
+If instead we impose the conditions as in the AM2 formula but instead impose that \\ $\beta_{2} = 1,\ \beta_{1} = \beta_{0}= 0$ and solve for the $a_{r}$ we instead acquire that 
+\begin{align}
+	\alpha_{2}=\dfrac{3}{2k},\ \alpha_{1} = -\dfrac{4}{2k},\ \alpha_{0} = \dfrac{1}{2k}
+\end{align}
+and thus reacquire the BDF formula.
+
+
 \subsection*{Part C}
+
+The characteristic polynomials for the Adams-Bashforth 3-step method are given by
+\begin{align}
+\rho(\zeta) = \sum_{j=0}^{3}\alpha_{r}\zeta^{r} &= \zeta^{3} - \zeta^{2}\\
+\sigma(\zeta) = \sum_{j=0}^{2}\beta_{r}\zeta^{r} &= \dfrac{23}{12}\zeta^{2} -\dfrac{16}{12}\zeta + \dfrac{5}{12},
+\end{align}
+and the stability polynomial is then 
+\begin{align}
+	\pi(\zeta; z) = \rho(\zeta) - z\sigma(\zeta) = \zeta ^3-\zeta ^2- z\left(\frac{23 \zeta ^2}{12}-\frac{4 \zeta }{3}+\frac{5}{12}\right).
+\end{align}
+As we saw above the leading order for this method is $\bO(k^{3})$ as we eliminated the first four terms in the general truncation error~\eqref{eq:gen_trunc_err}. The leading term in the truncation error is then 
+\begin{align}
+	k^{3}\sum_{j=0}^{3}\left(\frac{1}{24} j^{4} \alpha_{j}-\frac{1}{6} j^{3} \beta_{j}\right) u^{\prime\prime\prime\prime}\left(t_{n}\right) = \dfrac{3}{8}k^{3}u^{\prime\prime\prime\prime}(t_{n}).
+\end{align}
+To check zero stability, we check the roots of the characteristic polynomial
+\begin{align}
+	\rho(\zeta) = \zeta^{2}(\zeta-1),
+\end{align}
+and so we see that the zeros of this polynomial are $\zeta = 0$ and $\zeta = 1$, and thus we see that it satisfies the root condition and so is zero-stable.
 
 \subsection*{Part D}
 
+Porting \textbf{[LV]} code \verb|makeplotBL.m| into Python, we acquire the boundary locus plot for AB3 shown in Fig.~\ref{fig:AB3_BL}.
+\begin{figure}[!h]
+    \centering
+    \subfloat{\includegraphics[clip,scale=0.2]{BL_AB3_plot.pdf}}
+    \subfloat{\includegraphics[clip,scale=0.2]{BL_AM2_plot.pdf}}
+    \subfloat{\includegraphics[clip,scale=0.2]{BL_BDF2_plot.pdf}}
+    \caption{Plotting $z = \rho/\sigma$ on the complex plane. [Left subplot] The region \emph{inside} the region outlined is the stability-region for the AB3 method. [Middle subplot] The region \emph{inside} the outlined is the stability-region for the AM2 method. 
+    [Right subplot] The region \emph{exterior} to the region outlined is the stability-region for the BDF2 method.
+    }
+    \label{fig:BL_plots} 
+\end{figure}
+
 \subsection*{Part E}
+
+We implement the AB3 method in \verb|A4Q4.ipynb|  and use an RK4 method to initialize the first 3 points. We compute the solution for the equation $u^{\prime} = \lambda u$ with $\lambda = -1$ for a variety of $k$. 
+
+The left subplot of Fig.~\ref{fig:AB3_soln_fig}, we observe behaviours in the solution consistent with the boundary loci computed in Fig.~\ref{fig:BL_plots}. In particular we see that for $k = 0.5$, as we approach the boundary of the stability region, the solution begins to deviate from the solution. For $k = 0.75$ when we have passed the apex of the stability region, we see that the computed solution, really deviates from the exact solution in an exponential function. The lines extend out of the plot as the plot is a log-lin plot and whenever a value becomes negative, it is not well captured in this type of plot. 
+
+The right subplot of Figure~\ref{fig:AB3_soln_fig} shows the error as a function of step size $k$ when $k$ is inside the stability region. We thus confirm that this method is indeed third-order within the stability region. 
+
+\begin{figure}[!h]
+    \centering
+    \subfloat{\includegraphics[clip, scale=0.3]{stability_plot.pdf}}
+    \subfloat{\includegraphics[clip, scale=0.3]{error_AB3_plot.pdf}}
+    \caption{[Left subplot] Computed solution, $U[t_{n}]$, to the equation $u^{\prime} = \lambda u$ using the AB3 method,  as a function of time step $t_{n}$. [Right subplot] Infinity-norm error between the solution computed using AB3 and the true solution as a function of time step size $k$.}
+    \label{fig:AB3_soln_fig}
+\end{figure}
 
 % =================================================================================
 
@@ -379,16 +506,282 @@ which can be translated into the form given by a simple shift of index to the de
 
 \subsection*{Part A}
 
+\subsubsection*{AB2 method}
+The interpolating polynomial is given by 
+\begin{align}
+    p(t) = \dfrac{t-t_{n-1}}{t_{n}-t_{n-1}}f^{n} + \dfrac{t-t_{n}}{t_{n-1}-t_{n}}f^{n-1}.
+\end{align}
+Integrating this polynomial from time $t_{n}$ to time $t_{n+1}$ we have
+\begin{subequations}
+    \begin{align}
+        \int_{t_{n}}^{t_{n+1}}\dd{t}p(t) &= \left.\frac{1}{k} \left\{\left(\frac{f_{n}}{2}-\frac{f_{n-1}}{2}\right)t^2
+        +\left[f^{n}(k-t_{n})+f^{n-1}t_{n}\right]t\right\}\right|_{t_{n}}^{t_{n+k}}\\
+        &=\dfrac{k}{2}\left(3f^{n}-f^{n-1}\right).
+    \end{align}
+\end{subequations}
+Therefore, the 2-step Adams-Bashforth method is given by 
+\begin{align}
+    U^{n+1} = U^{n} + \dfrac{k}{2}\left(3f(U^{n},t_{n})-f(U^{n-1},t_{n-1})\right).\label{eq:ab2_form}
+\end{align}
+To find it's local truncation error we first define the shorthand \[f^{(n,m)} = \pdv{}{u^{n}}{t^{m}}f(u(t),t). \] We then substitute in the true solution $u$ into the above equation of the method~\eqref{eq:ab2_form} and Taylor expand all the things,
+\begin{subequations}
+    \begin{align}
+        \tau(t_{n}) &= \dfrac{u(t_{n}+k)-u(t_{n})}{k} - \dfrac{1}{2}\left(3f(u(t_{n}),t_{n})-f(u(t_{n}-k),t_{n}-k)\right)\\
+        &= \frac{k^2}{12} \Bigg( 3 u''(t_{n})
+        f^{(1,0)}(u(t_{n}),t_{n})+3 u'(t_{n})^2 f^{(2,0)}(u(t_{n}),t_{n})\nonumber\\
+        &\hspace{3cm}+6 u'(t_{n}) f^{(1,1)}(u(t_{n}),t_{n})+3
+        f^{(0,2)}(u(t_{n}),t_{n})+2 u^{(3)}(t_{n})\Bigg)+\bO\left(k^3\right)\\
+        &= \dfrac{5}{12}k^2 u^{(3)}(t_{n}) + \bO(k^{3}),
+    \end{align}
+\end{subequations}
+where in going from the penultimate step to the last we used that
+\begin{subequations}
+    \begin{align}
+        u^{(3)}(t) &= \dv{}{t}\left\{\dv{t} \left[u^{\prime}(t)\right]\right\}\\
+        &= \dv{}{t}\left\{\dv{t} \left[f(u(t),t)\right]\right\}\\
+        &= \dv{}{t}\left[f(u(t),t)f^{(1,0)}(u(t),t)+f^{(0,1)}(u(t),t)\right]\\
+        &= u''(t) f^{(1,0)}(u(t),t)+u'(t)^2 f^{(2,0)}(u(t),t)+2 u'(t)
+        f^{(1,1)}(u(t),t)+f^{(0,2)}(u(t),t),
+    \end{align}
+\end{subequations}
+to simplify the expression.
+
+\subsubsection*{Explicit RK2 method}
+
+To derive the 2nd-order explicit two-stage Runge-Kutta method with $c_{1} = 0,\ c_{2} = 1$, we approximate $f(u(t_{n}+s), t_{n}+s)$ by its (linear) interpolant through the points $f^{n}$ and $f^{*}$. This polynomial is given by
+\begin{align}
+    p(t) = \dfrac{t-t^{*}}{-k}f^{n}+\dfrac{t-t_{n}}{k}f^{*},
+\end{align}
+and integrating from $t_{n}$ to $t_{n+1}$ gives,
+\begin{subequations}
+    \begin{align}
+        \int_{t_{n}}^{t_{n+1}}\dd{t} p(t) &= \dfrac{1}{k}\left.\left\{
+            \left(\frac{f^{*}}{2}-\frac{f_{n}}{2}\right)t^2
+            +\left[f^{n}(k+t_{n})-f^{*}t_{n}\right]t
+        \right\}\right|_{t_{n}}^{t_{n}+k}\\
+        &= \dfrac{k}{2}\left[f^{n}+f^{*}\right]\\
+        &= \dfrac{k}{2}\left[f(U^{n},t_{n}) + f(U^{*},t_{n}+k)\right].
+    \end{align}
+\end{subequations}
+Therefore, the explicit RK2 method is given by 
+\begin{align}
+    U^{n+1} = U^{n} + \dfrac{k}{2}\left[f(U^{n},t_{n}) + f(U^{*},t_{n}+k)\right],\label{eq:rk2_form}
+\end{align}
+which is just Heun's method as we have already seen.
+
 \subsection*{Part B}
+
+Considering the ODE,
+\begin{align}
+    u^{\prime} = g(u,t) = \lambda u + f(u,t)
+\end{align}
+we apply Forward Euler (FE), AB2, and RK2 to it. 
+
+\subsubsection*{AB1 = FE}
+Applying the FE discretization (also equivalent to a 1-stage Adams-Bashforth method) we have that,
+\begin{subequations}
+    \begin{align}
+    U^{n+1} &= U^{n} + k g(U^{n},t_{n})\\
+    &= U^{n} + k \left[\lambda U^{n} + f(U^{n},t_{n})\right]\\
+    &= (1+k\lambda)U^{n} + kf(U^{n},t_{n})
+    \end{align}
+\end{subequations}
+
+As instructed, if we apply the AB1 discretization to the problem, \[ v^{\prime} = g(v,t),\] then we have 
+\begin{align}
+V^{n+1} = V^{n} + k g(V^{n},t_{n}).
+\end{align}
+Substituting back for $u$ we get
+\begin{subequations}
+    \begin{align}
+    e^{-\lambda t_{n+1}}U^{n+1} &= e^{-\lambda t_{n}}U^{n} + k e^{-\lambda t_{n}}f(U^{n},t_{n})\\
+    U^{n+1} &= e^{\lambda (t_{n+1}-t_{n})}U^{n} + k e^{\lambda (t_{n+1}-t_{n})}f(U^{n},t_{n})\\
+    &= e^{\lambda k}U^{n} + k e^{\lambda k}f(U^{n},t_{n})
+    \end{align}
+\end{subequations}
+The local truncation error is given by 
+\begin{subequations}
+    \begin{align}
+        \tau(t_{n}) &= \dfrac{u(t_{n}+k)-e^{\lambda k}u(t_{n})}{ke^{\lambda k}}-f(u(t_{n}),t_{n})\\
+        &= -\lambda  u(t_{n})+\frac{1}{2}k \left(u^{\prime\prime}(t_{n})-2 \lambda u^{\prime}(t_{n})+\lambda^2 u(t_{n})\right)+\bO\left(k^2\right).
+    \end{align}    
+\end{subequations}
+In the limit that $\lambda\to 0$ we see that the truncation error 
+\begin{subequations}
+    \begin{align}
+        \lim\limits_{\lambda\to 0}\tau(t_{n}) &= \lim\limits_{\lambda\to 0}\left[-\lambda  u(t_{n})+\frac{1}{2}k \left(u^{\prime\prime}(t_{n})-2 \lambda u^{\prime}(t_{n})+\lambda^2 u(t_{n})\right)+\bO\left(k^2\right)\right]\\
+        &= \frac{1}{2}k u^{\prime\prime}(t_{n})+\bO\left(k^2\right),
+    \end{align}
+\end{subequations}
+which is exactly the trucnation error of the FE scheme.
+
+Now applying this exponential time differencing scheme to the test problem, \[u^{\prime} = \lambda u,\]
+we have that 
+\begin{subequations}
+    \begin{align}
+        U^{n+1} &= e^{\lambda k}U^{n} + k e^{\lambda k}f(U^{n},t_{n})\\
+        &= e^{\lambda k}U^{n} + k e^{\lambda k}\left[\lambda U^{n}\right]\\
+        &= (1+k\lambda)e^{k\lambda}U^{n}.
+    \end{align}
+\end{subequations}
+When $\lambda < 0$, we have that $|(1+k\lambda)e^{k\lambda}|\le 1$ and so we have that this scheme is A-stable. 
+
+\subsubsection*{AB2}
+Applying the AB2 discretization~\eqref{eq:ab2_form} we have that
+\begin{subequations}
+    \begin{align}
+        U^{n+1} &= U^{n} + \dfrac{k}{2}\left\{3g(U^{n},t_{n})-g(U^{n-1},t_{n-1})\right\}\\
+        &= U^{n} + \dfrac{k}{2}\left\{3\left[\lambda U^{n} + f(U^{n},t_{n})\right]-\left[\lambda U^{n-1} + f(U^{n},t_{n-1})\right]\right\}\\
+        &= U^{n} + \dfrac{k}{2}\left\{3\left[\lambda U^{n} + f(U^{n},t_{n})\right]-\left[\lambda U^{n-1} + f(U^{n},t_{n-1})\right]\right\}\\
+        &= \dfrac{1}{2}(2+3k\lambda)U^{n} - \dfrac{1}{2}k\lambda U^{n-1} + \dfrac{k}{2}\left[3f(U^{n},t_{n})-f(U^{n-1},t_{n-1})\right].
+    \end{align}
+\end{subequations}
+As instructed, if we apply the AB2 discretization to the problem, \[ v^{\prime} = g(v,t),\] then we have
+\begin{align}
+    V^{n+1} &= V^{n} + \dfrac{k}{2}\left(3g(V^{n},t_{n})-g(V^{n-1},t_{n-1})\right)
+\end{align}
+Substituting back for $u$ we get
+\begin{subequations}
+    \begin{align}
+    e^{-\lambda t_{n+1}}U^{n+1} &= e^{-\lambda t_{n}}U^{n} + \dfrac{k}{2}\left\{3\left[e^{-\lambda t_{n}}f(U^{n},t_{n})\right]-\left[e^{-\lambda t_{n-1}}f(U^{n-1},t_{n-1})\right]\right\}\\
+    U^{n+1} &= e^{\lambda k}U^{n} + \dfrac{k}{2}\left\{3e^{\lambda k}f(U^{n},t_{n})-e^{2\lambda k}f(U^{n-1},t_{n-1})\right\}.
+    \end{align}
+\end{subequations}
+Thus we have derived the associated integrating factor scheme for AB2. 
+
+\subsubsection*{RK2}
+Applying the RK2 discretization~\eqref{eq:rk2_form} we have that
+\begin{align}
+    U^{n+1} = U^{n} + \dfrac{k}{2}\left[g(U^{n},t_{n}) + g(U^{*},t_{n}+k)\right],
+\end{align}
+where \[U^{*} = (1+k\lambda)U^{n} + kf(U^{n},t_{n}),\] arising from an FE step. Expanding the discretization,
+\begin{subequations}
+    \begin{align}
+        U^{n+1} &= U^{n} + \dfrac{k}{2}\left\{\left[\lambda U^{n} + f(U^{n},t_{n})\right] + \left[\lambda U^{*} + f(U^{*},t_{n}+k)\right]\right\}\\
+        &= U^{n} + \dfrac{k}{2}\left\{\lambda U^{n} + f(U^{n},t_{n}) + \lambda \left[(1+k\lambda)U^{n} + kf(U^{n},t_{n})\right] + f(U^{*},t_{n}+k)\right\}\\
+        &= \dfrac{1}{2}\left[2+2k\lambda+(k\lambda)^{2}\right]U^{n} + \dfrac{k}{2}\left[(1+k\lambda)f(U^{n},t_{n})+f(U^{*},t_{n}+k)\right]
+    \end{align}
+\end{subequations}
+As instructed, if we apply the RK2 discretization to the problem, \[ v^{\prime} = g(v,t),\] then we have
+\begin{align}
+    V^{n+1} &= V^{n} + \dfrac{k}{2}\left[g(V^{n},t_{n}) + g(V^{*},t_{n}+k)\right]
+\end{align}
+Substituting back for $u$ we get
+\begin{subequations}
+    \begin{align}
+    e^{-\lambda t_{n+1}}U^{n+1} &= e^{-\lambda t_{n}}U^{n} + \left\{e^{-\lambda t_{n}}f(U^{n},t_{n})+\left[e^{-\lambda t_{n+1}}f(U^{*},t_{n}+k)\right]\right\}\\
+    U^{n+1} &= e^{\lambda k} U^{n} + e^{\lambda k} f(U^{n},t_{n}) + f(U^{*},t_{n}+k).
+    \end{align}
+\end{subequations}
+Therefore, we have derived the associated integrating factor scheme for RK2.
 
 \subsection*{Part C}
 
+By integrating factor we showed that 
+\begin{align}
+    u^{\prime} = \lambda u + f(u, t) \Leftrightarrow \left(e^{-\lambda t}u\right)^{\prime}  = e^{-\lambda t}f(u,t).
+\end{align}
+Integrating the RHS of this relation from time $t_{n}$ to $t_{n}+k$ we have
+\begin{subequations}
+    \begin{align}
+        \int_{t_{n}}^{t_{n}+k}\dd{t} \left(e^{-\lambda t}u\right)^{\prime}  &= \int_{t_{n}}^{t_{n}+k}\dd{t} e^{-\lambda t}f(u,t)\\
+        u(t_{n}+k) &= e^{\lambda k} u(t_{n}) + e^{\lambda t_{n+1}} \int_{t_{n}}^{t_{n}+k}\dd{t} e^{-\lambda t} f(u(t), t).
+    \end{align}
+\end{subequations}
+If we let now $s = t-t_{n}$ then we can recast the integral bounds and thus reacquire that 
+\begin{align}
+    u(t_{n}+k) &= e^{\lambda k} u(t_{n}) + e^{\lambda k}\int_{0}^{k}\dd{s} e^{-\lambda s} f(u(t_{n}+s), t_{n}+s).
+\end{align}
+Therefore, we have shown that this integral equation is an equivalent formulation of the differential equation $u^{\prime} = \lambda u + f(u,t)$, and thus by extension then, any solution $u$ of this differential equation must also be a solution to the equivalent integral equation. 
+
+\subsubsection*{AB1 = FE method}
+
+Approximating the integrand by a constant interpolant using the left-hand endpoint of the interval,
+\begin{align}
+    p(t) = f(u(t_{n}), t_{n})
+\end{align} 
+Then we can use this interpolant in the integration,
+\begin{subequations}
+    \begin{align}
+        u(t_{n}+k) &\approx e^{\lambda k} u(t_{n}) + e^{\lambda k}\int_{0}^{k}\dd{s} e^{-\lambda s}p(s)\\
+        &= e^{\lambda k} u(t_{n}) + e^{\lambda k}f(u(t_{n}), t_{n})\int_{0}^{k}\dd{s} e^{-\lambda s}\\
+        U^{n+1} &= e^{\lambda k} U^{n} + e^{\lambda k}f(U^{n}, t_{n})\left[-\dfrac{1}{\lambda}e^{-\lambda s}\right]_{0}^{k}\\
+        &= e^{\lambda k} U^{n} + \dfrac{e^{\lambda k}-1}{\lambda}f(U^{n}, t_{n}).
+    \end{align}
+\end{subequations}
+Which if we add and subtract $U^{n}$ we can also write this as 
+\begin{subequations}
+    \begin{align}
+        U^{n+1} &= U^{n} + e^{\lambda k} U^{n} - U^{n} + \dfrac{e^{\lambda k}-1}{\lambda}f(U^{n}, t_{n})\\
+        &= U^{n} + \dfrac{e^{\lambda k}-1}{\lambda} \lambda U^{n} + \dfrac{e^{\lambda k}-1}{\lambda}f(U^{n}, t_{n})\\
+        &= U^{n} + \dfrac{e^{\lambda k}-1}{\lambda}\left[\lambda U^{n} + f(U^{n},t_{n})\right]
+    \end{align}
+\end{subequations}
+In the limit as $\lambda \to 0$ or $k\to 0$ for fixed $\lambda$ \[e^{\lambda k}\approx 1+\lambda k\] and so the above expression reduces to
+\begin{subequations}
+    \begin{align}
+    U^{n+1} &= U^{n} + \left(\dfrac{\left[1+\lambda k\right] - 1}{\lambda}\right)\left[\lambda U^{n} + f(U^{n},t_{n})\right]\\
+    &= (1+k\lambda) U^{n} + kf(U^{n},t_{n}),
+    \end{align}
+\end{subequations}
+which is exactly the FE method. Applying this scheme to the test problem \[u^{\prime} = \lambda u\] we acquire
+\begin{subequations}
+    \begin{align}
+        U^{n+1} &= e^{\lambda k} U^{n} + \dfrac{e^{\lambda k}-1}{\lambda}\lambda U^{n}\\
+        &= \left(2e^{\lambda k}-1\right)U^{n}.
+    \end{align}
+\end{subequations}
+For $\lambda < 0 \implies |2e^{\lambda k} -1| \le 1$ and so this scheme is A-stable (ie. its stability region contains the entire left-hand plane).
+
+\subsubsection*{AB2 method}
+
+Approximating the integrand by a constant interpolant using the left-hand endpoint of the interval, with $s=t-t_{n}$,
+\begin{align}
+p(s) = \dfrac{s+k}{k}f^{n} + \dfrac{s}{-k}f^{n-1}
+\end{align} 
+Then we can use this interpolant in the integration,
+\begin{subequations}
+    \begin{align}
+    u(t_{n}+k) &\approx e^{\lambda k} u(t_{n}) + e^{\lambda k}\int_{0}^{k}\dd{s} e^{-\lambda s}p(s)\\
+    &= e^{\lambda k} u(t_{n}) + e^{\lambda k}\int_{0}^{k}\dd{s} e^{-\lambda s}\left[\dfrac{s+k}{k}f^{n} + \dfrac{s}{-k}f^{n-1}\right]\\
+    U^{n+1} &= e^{\lambda k} U^{n} + \left[\frac{e^{-\lambda s}(-f^{n}(k\lambda+\lambda s+1)+f^{n-1}\lambda s+f^{n-1})}{k\lambda^2}\right]_{0}^{k}\\
+    &= e^{\lambda k} U^{n} + \frac{\left(k\lambda e^{k\lambda}-2k\lambda+e^{k\lambda}-1\right)}{k\lambda^2}f^{n} +\frac{\left(k\lambda-e^{k\lambda}+1\right)}{k\lambda^2}f^{n-1} 
+    \end{align}
+\end{subequations}
+Thus we have acquired the associated exponential time differencing scheme of the AB2 method. In the limit of $\lambda\to 0$ 
+\begin{subequations}
+    \begin{align}
+        U^{n+1} &= \lim\limits_{\lambda\to 0}\left\{\left[1+k\lambda\right]U^{n} + \frac{\left(k\lambda \left[1+k\lambda\right]-2k\lambda+\left[1+k\lambda\right]-1\right)}{k\lambda^2}f^{n} +\frac{\left(k\lambda-\left[1+k\lambda\right]+1\right)}{k\lambda^2}f^{n-1}\right\} \\
+        &= U^{n} + \dfrac{k}{2}(3f^{n}-f^{n-1}),
+    \end{align}
+\end{subequations}
+this scheme reduces to the AB2 method.
+
+\subsubsection*{RK2 method}
+Approximating the integrand by a constant interpolant using the left-hand endpoint of the interval, with $s=t-t_{n}$,
+\begin{align}
+p(s) = \dfrac{t+k}{-k}f^{n}+\dfrac{s}{k}f^{*}
+\end{align} 
+Then we can use this interpolant in the integration,
+\begin{subequations}
+    \begin{align}
+    u(t_{n}+k) &\approx e^{\lambda k} u(t_{n}) + e^{\lambda k}\int_{0}^{k}\dd{s} e^{-\lambda s}p(s)\\
+    &= e^{\lambda k} u(t_{n}) + e^{\lambda k}\int_{0}^{k}\dd{s} e^{-\lambda s}\left[\dfrac{s-k}{-k}f^{n}+\dfrac{s}{k}f^{*}\right]\\
+    U^{n+1} &= e^{\lambda k} U^{n} + e^{\lambda k}\left[-\frac{e^{-\lambda s} ((k\lambda-\lambda s-1)f^{n} + (1+\lambda s)f^{*})}{k \lambda ^2}\right]_{0}^{k}\\
+    &= e^{\lambda k} U^{n} + \frac{\left(k\lambda e^{k\lambda}-e^{k\lambda}+1\right)}{k\lambda^2}f^{n}-\frac{\left(k\lambda-e^{k\lambda}+1\right)}{k\lambda^2}f^{*}
+    \end{align}
+\end{subequations}
+Thus we have obtained the associated exponential time differentcing scheme of the RK2 method. In the limit of $\lambda\to 0$ 
+\begin{subequations}
+    \begin{align}
+        U^{n+1} &= \lim\limits_{\lambda\to 0}\left\{\left[1+k\lambda\right] U^{n} + \frac{\left(k\lambda \left[1+k\lambda\right]-\left[1+k\lambda\right]+1\right)}{k\lambda^2}f^{n}-\frac{\left(k\lambda-\left[1+k\lambda\right]+1\right)}{k\lambda^2}f^{*}\right\}\\
+        &= U^{n} + \dfrac{k}{2}\left[f^{n}+f^{*}\right],
+    \end{align}
+\end{subequations}
+this scheme reduces to the explicit RK2 method.
+
 \subsection*{Part D}
 
-\subsubsection*{i)}
-
-\subsubsection*{ii)}
-
-\subsubsection*{iii)}
+We haven't really talked about this yet. But in this case, the scheme most suited would be the exponential time-differencing. Using this scheme mitigates the stiffness of the equation brought about by the large and negative value of $\lambda$. Thus much larger time-steps can be taken, as any large temporal updates to the solution are damped out by the presence of the exponentials in the method. 
 
 \end{document}
