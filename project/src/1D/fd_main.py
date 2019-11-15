@@ -20,14 +20,14 @@ def get_params():
 
     # discretization parameters
     dt = 1e-4  # time discretization. Keep this number low
-    N = 360 # inverse space discretization. Keep this number high!
+    N = 180 # inverse space discretization. Keep this number high!
 
     # model-specific parameters
     gamma = 1000.0  # drag
     beta = 1.0  # 1/kT
     m = 1.0  # mass
 
-    E = 2.0 # energy scale of system
+    E = 0.5 # energy scale of system
 
     psi1 = 0.0 # force on system by chemical bath B1
     psi2 = 0.0 # force on system by chemical bath B2
@@ -131,7 +131,7 @@ def main():
         p_ss = zeros((N,N), order="F")
 
         problem_object = problem_2D(
-            n=N, m=N, E0=E, Ec=2.0, E1=E, num_minima0=n, num_minima1=n, 
+            n=N, m=N, E0=E, Ec=0.6, E1=E, num_minima0=n, num_minima1=n, 
             D=1./(m*gamma), psi0=psi1, psi1=psi2, mode=mode
             )
 

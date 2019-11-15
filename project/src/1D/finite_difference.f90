@@ -107,7 +107,7 @@ subroutine get_steady_ft_2D(n, dt, check_step, D, dx, drift1_at_pos, drift2_at_p
         if (step_counter .EQ. check_step) then
             tot_var_dist = 0.5*sum(abs(p_last_ref-p_now))
 
-            ! print *, tot_var_dist
+            print *, tot_var_dist
 
             if (tot_var_dist < float64_eps) then
                 cc = .FALSE.
@@ -294,11 +294,11 @@ subroutine gl10_2D(n, dx, drift1_at_pos, drift2_at_pos, p, dp, D, dt)
     integer*8, parameter :: s = 5
     integer*8, intent(in) :: n
     real*8, intent(in) :: dx
-    real*8, dimension(n), intent(in) :: drift1_at_pos, drift2_at_pos
-    real*8, dimension(n), intent(inout) :: p, dp
+    real*8, dimension(n,n), intent(in) :: drift1_at_pos, drift2_at_pos
+    real*8, dimension(n,n), intent(inout) :: p, dp
     real*8, intent(in) :: D, dt
-    real*8, dimension(:,:), allocatable :: g
-    integer*8 i, k
+    real*8, dimension(:,:,:), allocatable :: g
+    integer*8 i, k, ii
 
     ! Butcher tableau for 10th order Gauss-Legendre method
     real*8, parameter :: a(s,s) = reshape((/ &
@@ -320,18 +320,23 @@ subroutine gl10_2D(n, dx, drift1_at_pos, drift2_at_pos, p, dp, D, dt)
                 2.8444444444444444444444444444444444444Q-1,  2.3931433524968323402064575741781909646Q-1, &
                 1.1846344252809454375713202035995868132Q-1]
 
-    allocate(g(n,s))
+    allocate(g(n,n,s))
 
     ! iterate trial steps
-    g = 0.0; do k = 1,16
-            g = matmul(g,a)
-            do i = 1,s
-                    call spatial_derivs_FD_2D(n, dx, g(:,i), p+g(:,i)*dt, drift1_at_pos, drift2_at_pos, D, dt)
-            end do
+    g = 0.0; 
+    do k = 1,16
+        do ii=1,n
+            g(:,:,i) = matmul(g(:,:,i),a)
+        end do
+        do i = 1,s
+                call spatial_derivs_FD_2D(n, dx, g(:,:,i), p+g(:,:,i)*dt, drift1_at_pos, drift2_at_pos, D, dt)
+        end do
     end do
 
     ! update the solution
-    dp = matmul(g,b)*dt
+    do ii=1,n
+        dp(:,i) = matmul(g(:,:,i),b)*dt
+    end do
 end subroutine gl10_2D
 
 subroutine spatial_derivs_FD_1D(n, dx, ddx, p_last, drift_at_pos, D, dt)
