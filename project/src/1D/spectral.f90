@@ -11,114 +11,7 @@ real(8), parameter :: pi = 4.0*atan(1.0)
 
 contains
 
-subroutine get_spectral_steady_ft( &
-    n, m, dt, check_step, D, dx, dy, dmu1, ddmu1, dmu2, ddmu2, p_initial, p_final &
-    )
-    integer(8), intent(in) :: n, m
-    real(8), intent(in) :: dt
-    integer(8), intent(in) :: check_step
-    real(8), intent(in) :: D, dx, dy
-    real(8), dimension(n,m), intent(in) :: dmu1, ddmu1, dmu2, ddmu2
-    real(8), dimension(n,m), intent(inout) :: p_initial
-    real(8), dimension(n,m), intent(inout) :: p_final
-
-    ! continue condition
-    logical cc
-    integer(8) step_counter ! counting steps
-    real(8) tot_var_dist ! total variation distance
-    
-    complex(8), dimension(n,m) :: pr, phat_mat, p_penultimate
-    complex(8), dimension(n*m+1) :: p_now
-    complex(8), dimension(n*m) :: p_last_ref
-    integer(8) plan0, plan1, status
-
-    complex(8), dimension(:), allocatable :: update
-
-    allocate( update(n*m+1) )
-
-    print *, sum(p_initial)
-
-    pr = p_initial
-
-	! call dfftw_init_threads(status)
-	! call dfftw_plan_with_nthreads(2)
-
-	! planning is good
-    call dfftw_plan_dft_2d(plan0,n,m,pr,phat_mat,FFTW_FORWARD,FFTW_ESTIMATE)
-
-    ! take the distribution into k-space
-    call dfftw_execute_dft(plan0,pr,phat_mat)
-
-	call dfftw_destroy_plan(plan0)
-    ! call dfftw_cleanup_threads()
-
-    ! initialize based on fourier transform of initial data
-    p_now(:n*m) = pack(phat_mat,.TRUE.)
-    p_now(n*m+1) = 0.0 ! set time = 0
-
-    phat_mat = 0.0 ! reset the phat_mat matrix
-
-    ! initialize reference array
-    p_last_ref = 0.0
-
-    ! initialize loop variables
-    cc = .TRUE.; step_counter = 0
-
-    print *, maxval(abs(p_now(:n*m)))
-    print *, maxval(dmu1), maxval(ddmu1), maxval(dmu2), maxval(ddmu2)
-
-    do while (cc)
-
-        ! update probabilities using a Gauss-Legendre scheme
-        call evalf( &
-            n, m, D, dx, dy, &
-            dmu1, dmu2, ddmu1, ddmu2, p_now, update &
-            )
-        print *, "Max value check:", maxval(abs(p_now(:n*m)))
-
-        p_now = p_now + dt*update
-
-        ! bail at the first sign of trouble
-        ! if (abs(sum(p_now(:n*m)) - 1.0) .ge. float32_eps) stop "Normalization broken!"
-
-        if (step_counter .EQ. check_step) then
-            tot_var_dist = 0.5*sum(abs(p_last_ref-p_now(:n*m)))
-
-            print *, "Tot. var. dist = ", tot_var_dist
-
-            if (tot_var_dist < float64_eps) then
-                cc = .FALSE.
-            else
-                tot_var_dist = 0.0; step_counter = 0
-                p_last_ref = p_now(:n*m)
-            end if
-        end if
-        step_counter = step_counter + 1
-    end do
-
-    phat_mat = reshape(p_now(:n*m), [n,m])
-
-    print *, "Phat_mat pass off:", maxval(abs(phat_mat))
-
-	! planning is good
-    call dfftw_plan_dft_2d(plan1,n,m,phat_mat,p_penultimate,FFTW_BACKWARD,FFTW_ESTIMATE)
-
-    p_penultimate = 0.0
-    ! take the distribution back into real-space
-    call dfftw_execute_dft(plan1,phat_mat,p_penultimate)
-    call dfftw_destroy_plan(plan1)
-
-    p_final = 0.0; p_final = realpart(p_penultimate)/(n*m)
-
-    print *, "maxvalue p final:", maxval(p_final)
-    print *, "final normalization:", sum(p_final)
-    
-    if (abs(sum(p_final) - 1.0) .ge. float32_eps) stop "Normalization broken!"
-
-    ! p_final = 0.0; p_final = reshape(p_now(:n*m),[n,m])
-end subroutine get_spectral_steady_ft
-
-subroutine get_spectral_steady_gl10( &
+subroutine get_spectral_steady_explicit( &
     n, m, dt, check_step, D, dx, dy, dmu1, ddmu1, dmu2, ddmu2, p_initial, p_final &
     )
     integer(8), intent(in) :: n, m
@@ -139,12 +32,10 @@ subroutine get_spectral_steady_gl10( &
     real(8), dimension(n,m) :: p_last_ref
     integer(8) plan0, plan1, plan2, status
 
-    print *, sum(p_initial)
-
     pr = p_initial
 
 	call dfftw_init_threads(status)
-	call dfftw_plan_with_nthreads(4)
+	call dfftw_plan_with_nthreads(2)
 
 	! planning is good
     call dfftw_plan_dft_2d(plan0,n,m,pr,phat_mat,FFTW_FORWARD,FFTW_ESTIMATE)
@@ -171,7 +62,7 @@ subroutine get_spectral_steady_gl10( &
     do while (cc)
 
         ! update probabilities using a Gauss-Legendre scheme
-        call gl10_1D(n, dx, m, dy, dmu1, ddmu1, dmu2, ddmu2, p_now, D, dt)
+        call rk4(n, dx, m, dy, dmu1, ddmu1, dmu2, ddmu2, p_now, D, dt) 
 
         if (step_counter .EQ. check_step) then
 
@@ -214,7 +105,293 @@ subroutine get_spectral_steady_gl10( &
     if (abs(sum(p_final) - 1.0) .ge. float32_eps) stop "Normalization broken!"
 
     ! p_final = 0.0; p_final = reshape(p_now(:n*m),[n,m])
-end subroutine get_spectral_steady_gl10
+end subroutine get_spectral_steady_explicit
+
+subroutine get_spectral_steady_gl( &
+    n, m, dt, check_step, D, dx, dy, dmu1, ddmu1, dmu2, ddmu2, p_initial, p_final &
+    )
+    integer(8), intent(in) :: n, m
+    real(8), intent(in) :: dt
+    integer(8), intent(in) :: check_step
+    real(8), intent(in) :: D, dx, dy
+    real(8), dimension(n,m), intent(in) :: dmu1, ddmu1, dmu2, ddmu2
+    real(8), dimension(n,m), intent(inout) :: p_initial
+    real(8), dimension(n,m), intent(inout) :: p_final
+
+    ! continue condition
+    logical cc
+    integer(8) step_counter ! counting steps
+    real(8) tot_var_dist ! total variation distance
+    
+    complex(8), dimension(n,m) :: pr, phat_mat, p_penultimate, px_now
+    complex(8), dimension(n*m+1) :: p_now
+    real(8), dimension(n,m) :: p_last_ref
+    integer(8) plan0, plan1, plan2, status
+
+    print *, sum(p_initial)
+
+    pr = p_initial
+
+	call dfftw_init_threads(status)
+	call dfftw_plan_with_nthreads(2)
+
+	! planning is good
+    call dfftw_plan_dft_2d(plan0,n,m,pr,phat_mat,FFTW_FORWARD,FFTW_ESTIMATE)
+    call dfftw_plan_dft_2d(plan1,n,m,phat_mat,px_now,FFTW_BACKWARD,FFTW_ESTIMATE)
+    call dfftw_plan_dft_2d(plan2,n,m,phat_mat,p_penultimate,FFTW_BACKWARD,FFTW_ESTIMATE)
+
+    ! take the distribution into k-space
+    call dfftw_execute_dft(plan0,pr,phat_mat)
+
+	call dfftw_destroy_plan(plan0)
+
+    ! initialize based on fourier transform of initial data
+    p_now(:n*m) = pack(phat_mat,.TRUE.)
+    p_now(n*m+1) = 0.0 ! set time = 0
+
+    phat_mat = 0.0 ! reset the phat_mat matrix
+
+    ! initialize reference array
+    p_last_ref = 0.0
+
+    ! initialize loop variables
+    cc = .TRUE.; step_counter = 0
+
+    do while (cc)
+
+        ! update probabilities using a Gauss-Legendre scheme
+        call gl06_1D(n, dx, m, dy, dmu1, ddmu1, dmu2, ddmu2, p_now, D, dt)
+
+        if (step_counter .EQ. check_step) then
+
+            phat_mat = reshape(p_now(:n*m), [n,m])
+
+            call dfftw_execute(plan1, phat_mat, px_now)
+
+            ! bail at first sign of trouble
+            if (abs(sum(realpart(px_now)/(n*m)) - 1.0) .ge. float32_eps) stop "Normalization broken!"
+
+            ! compute total variation distance
+            tot_var_dist = 0.5*sum(abs(p_last_ref-(realpart(px_now)/(n*m))))
+
+            print *, "Tot. var. dist = ", tot_var_dist
+
+            if (tot_var_dist < float64_eps) then
+                cc = .FALSE.
+            else
+                tot_var_dist = 0.0; step_counter = 0; phat_mat = 0.0
+                p_last_ref = realpart(px_now)/(n*m)
+            end if
+        end if
+        step_counter = step_counter + 1
+    end do
+
+    phat_mat = reshape(p_now(:n*m), [n,m])
+
+    p_penultimate = 0.0
+    ! take the distribution back into real-space
+    call dfftw_execute_dft(plan2,phat_mat,p_penultimate)
+    call dfftw_destroy_plan(plan2)
+    
+    call dfftw_cleanup_threads()
+
+    p_final = 0.0; p_final = realpart(p_penultimate)/(n*m)
+
+    print *, "maxvalue p final:", maxval(p_final)
+    print *, "final normalization:", sum(p_final)
+    
+    if (abs(sum(p_final) - 1.0) .ge. float32_eps) stop "Normalization broken!"
+end subroutine get_spectral_steady_gl
+
+subroutine forward_euler(n, dx, m, dy, dmu1, ddmu1, dmu2, ddmu2, p, D, dt)
+    integer(8), parameter :: s = 1 ! number of stages
+    integer(8), intent(in) :: n, m
+    real(8), intent(in) :: dx, dy
+    real(8), dimension(n,m), intent(in) :: dmu1, ddmu1, dmu2, ddmu2
+    complex(8), dimension(n*m+1), intent(inout) :: p
+    real(8), intent(in) :: D, dt
+    complex(8), dimension(:), allocatable :: update
+
+    allocate( update(n*m+1) )
+
+    call evalf(n, m, D, dx, dy, dmu1, dmu2, ddmu1, ddmu2, p, update)
+
+    ! update the solution
+    p = p + dt*update
+end subroutine forward_euler 
+
+! 4th order Runge-Kutta integrator with fixed step size
+subroutine rk4(n, dx, m, dy, dmu1, ddmu1, dmu2, ddmu2, p, D, dt)
+    integer(8), parameter :: s = 1 ! number of stages
+    integer(8), intent(in) :: n, m
+    real(8), intent(in) :: dx, dy
+    real(8), dimension(n,m), intent(in) :: dmu1, ddmu1, dmu2, ddmu2
+    complex(8), dimension(n*m+1), intent(inout) :: p
+    real(8), intent(in) :: D, dt
+    complex(8), dimension(:), allocatable :: update, yt, dydx, dyt, dym
+    integer(8) i, k
+    real(8) hh
+
+    allocate( update(n*m+1), yt(n*m+1), dydx(n*m+1), dyt(n*m+1), dym(n*m+1) )
+
+    hh = 0.5*dt
+
+    call evalf(n, m, D, dx, dy, dmu1, dmu2, ddmu1, ddmu2, p, dydx)
+    yt = p + hh*dydx
+
+    call evalf(n, m, D, dx, dy, dmu1, dmu2, ddmu1, ddmu2, yt, dyt)
+    yt = p + hh*dyt
+
+    call evalf(n, m, D, dx, dy, dmu1, dmu2, ddmu1, ddmu2, yt, dym)
+    yt = p + dt*dym
+    dym = dyt + dym
+
+    call evalf(n, m, D, dx, dy, dmu1, dmu2, ddmu1, ddmu2, yt, dyt)
+
+    update = dt*(dydx + dyt + 2.0*dym)/6.0
+
+    ! update the solution
+    p = p + update
+end subroutine rk4
+
+! 2nd order implicit Gauss-Legendre integrator
+subroutine gl02_1D(n, dx, m, dy, dmu1, ddmu1, dmu2, ddmu2, p, D, dt)
+    integer(8), parameter :: s = 1 ! number of stages
+    integer(8), intent(in) :: n, m
+    real(8), intent(in) :: dx, dy
+    real(8), dimension(n,m), intent(in) :: dmu1, ddmu1, dmu2, ddmu2
+    complex(8), dimension(n*m+1), intent(inout) :: p
+    real(8), intent(in) :: D, dt
+    complex(8), dimension(:), allocatable :: update
+    complex(8), dimension(:,:), allocatable :: g
+    integer(8) i, k
+
+    ! Butcher tableau for 2nd order Gauss-Legendre method
+    complex(8), parameter :: a = 0.5
+    complex(8), parameter :: b = 1.0
+
+    allocate( g(n*m+1,s), update(n*m+1) )
+
+    ! iterate trial steps
+    g = 0.0; do k = 1,16
+            g(:,1) = g(:,1)*a
+            call evalf(n, m, D, dx, dy, dmu1, dmu2, ddmu1, ddmu2, p+g(:,1)*dt, g(:,1))
+    end do
+
+    update = g(:,1)*b*dt
+
+    ! update the solution
+    p = p + update
+end subroutine gl02_1D
+
+! 4th order implicit Gauss-Legendre integrator
+subroutine gl04_1D(n, dx, m, dy, dmu1, ddmu1, dmu2, ddmu2, p, D, dt)
+    integer(8), parameter :: s = 2 ! number of stages
+    integer(8), intent(in) :: n, m
+    real(8), intent(in) :: dx, dy
+    real(8), dimension(n,m), intent(in) :: dmu1, ddmu1, dmu2, ddmu2
+    complex(8), dimension(n*m+1), intent(inout) :: p
+    real(8), intent(in) :: D, dt
+    complex(8), dimension(:), allocatable :: update
+    complex(8), dimension(:,:), allocatable :: g
+    integer(8) i, k
+
+    ! Butcher tableau for 4th order Gauss-Legendre method
+    complex(8), parameter :: a(s,s) = reshape((/ 0.25, 0.25 - 0.5/sqrt(3.0), 0.25 + 0.5/sqrt(3.0), 0.25 /), (/s,s/))
+    complex(8), parameter :: b(s) = (/ 0.5, 0.5 /)
+
+    allocate( g(n*m+1,s), update(n*m+1) )
+
+    ! iterate trial steps
+    g = 0.0; do k = 1,16
+            g = matmul(g,a)
+            do i = 1,s
+                call evalf(n, m, D, dx, dy, dmu1, dmu2, ddmu1, ddmu2, p+g(:,i)*dt, g(:,i))
+            end do
+    end do
+
+    update = matmul(g,b)*dt
+
+    ! update the solution
+    p = p + update
+end subroutine gl04_1D
+
+! 6th order implicit Gauss-Legendre integrator
+subroutine gl06_1D(n, dx, m, dy, dmu1, ddmu1, dmu2, ddmu2, p, D, dt)
+    integer(8), parameter :: s = 3 ! number of stages
+    integer(8), intent(in) :: n, m
+    real(8), intent(in) :: dx, dy
+    real(8), dimension(n,m), intent(in) :: dmu1, ddmu1, dmu2, ddmu2
+    complex(8), dimension(n*m+1), intent(inout) :: p
+    real(8), intent(in) :: D, dt
+    complex(8), dimension(:), allocatable :: update
+    complex(8), dimension(:,:), allocatable :: g
+    integer(8) i, k
+
+    ! Butcher tableau for 6th order Gauss-Legendre method
+    complex(8), parameter :: a(s,s) = reshape((/ &
+            5.0/36.0, 2.0/9.0 - 1.0/sqrt(15.0), 5.0/36.0 - 0.5/sqrt(15.0), &
+            5.0/36.0 + sqrt(15.0)/24.0, 2.0/9.0, 5.0/36.0 - sqrt(15.0)/24.0, &
+            5.0/36.0 + 0.5/sqrt(15.0), 2.0/9.0 + 1.0/sqrt(15.0), 5.0/36.0 /), (/s,s/))
+    complex(8), parameter ::   b(s) = (/ 5.0/18.0, 4.0/9.0, 5.0/18.0/)
+
+    allocate( g(n*m+1,s), update(n*m+1) )
+
+    ! iterate trial steps
+    g = 0.0; do k = 1,16
+            g = matmul(g,a)
+            do i = 1,s
+                call evalf(n, m, D, dx, dy, dmu1, dmu2, ddmu1, ddmu2, p+g(:,i)*dt, g(:,i))
+            end do
+    end do
+
+    update = matmul(g,b)*dt
+
+    ! update the solution
+    p = p + update
+end subroutine gl06_1D
+
+! 8th order implicit Gauss-Legendre integrator
+subroutine gl08_1D(n, dx, m, dy, dmu1, ddmu1, dmu2, ddmu2, p, D, dt)
+    integer(8), parameter :: s = 4 ! number of stages
+    integer(8), intent(in) :: n, m
+    real(8), intent(in) :: dx, dy
+    real(8), dimension(n,m), intent(in) :: dmu1, ddmu1, dmu2, ddmu2
+    complex(8), dimension(n*m+1), intent(inout) :: p
+    real(8), intent(in) :: D, dt
+    complex(8), dimension(:), allocatable :: update
+    complex(8), dimension(:,:), allocatable :: g
+    integer(8) i, k
+
+    ! Butcher tableau for 8th order Gauss-Legendre method
+    complex(8), parameter :: a(s,s) = reshape((/ &
+                0.869637112843634643432659873054998518Q-1, -0.266041800849987933133851304769531093Q-1, &
+                0.126274626894047245150568805746180936Q-1, -0.355514968579568315691098184956958860Q-2, &
+                0.188118117499868071650685545087171160Q0,   0.163036288715636535656734012694500148Q0,  &
+            -0.278804286024708952241511064189974107Q-1,  0.673550059453815551539866908570375889Q-2, &
+                0.167191921974188773171133305525295945Q0,   0.353953006033743966537619131807997707Q0,  &
+                0.163036288715636535656734012694500148Q0,  -0.141906949311411429641535704761714564Q-1, &
+                0.177482572254522611843442956460569292Q0,   0.313445114741868346798411144814382203Q0,  &
+                0.352676757516271864626853155865953406Q0,   0.869637112843634643432659873054998518Q-1 /), (/s,s/))
+    complex(8), parameter ::   b(s) = (/ &
+                0.173927422568726928686531974610999704Q0,   0.326072577431273071313468025389000296Q0,  &
+                0.326072577431273071313468025389000296Q0,   0.173927422568726928686531974610999704Q0  /)
+
+    allocate( g(n*m+1,s), update(n*m+1) )
+
+    ! iterate trial steps
+    g = 0.0; do k = 1,16
+            g = matmul(g,a)
+            do i = 1,s
+                call evalf(n, m, D, dx, dy, dmu1, dmu2, ddmu1, ddmu2, p+g(:,i)*dt, g(:,i))
+            end do
+    end do
+
+    update = matmul(g,b)*dt
+
+    ! update the solution
+    p = p + update
+end subroutine gl08_1D
 
 ! 10th order implicit Gauss-Legendre integrator
 subroutine gl10_1D(n, dx, m, dy, dmu1, ddmu1, dmu2, ddmu2, p, D, dt)

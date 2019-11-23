@@ -20,8 +20,8 @@ set_printoptions(linewidth=500)
 def get_params():
 
     # discretization parameters
-    dt = 1e-4  # time discretization. Keep this number low
-    N = 400  # inverse space discretization. Keep this number high!
+    dt = 1e-2  # time discretization. Keep this number low
+    N = 80  # inverse space discretization. Keep this number high!
 
     # model-specific parameters
     gamma = 1000.0  # drag
@@ -134,7 +134,7 @@ def main():
         # initialize array which holds the steady state distribution
         p_ss = zeros((N, N), order="F")
 
-        problem_object = problem_2D(
+        problem = problem_2D(
             n=N, m=N, E0=E, Ec=0.6, E1=E, num_minima0=n, num_minima1=n,
             D=1./(m*gamma), psi0=psi1, psi1=psi2, mode=mode
         )
@@ -143,18 +143,25 @@ def main():
         ddrift1 = zeros((N, N), order="F")
         drift2 = zeros((N, N), order="F")
         ddrift2 = zeros((N, N), order="F")
-        drift1[...] = problem_object.mu1
-        ddrift1[...] = problem_object.dmu1
-        drift2[...] = problem_object.mu2
-        ddrift2[...] = problem_object.dmu2
+        drift1[...] = problem.mu1
+        drift2[...] = problem.mu2
+        ddrift1[...] = problem.dmu1
+        ddrift2[...] = problem.dmu2
 
-        spectral_mod.fft_solve.get_steady_spectral_ft_2d(
-            dt, check_step, 1./(m*gamma), dx, dx, drift1, drift2, 
-            ddrift1, ddrift2, p_initial, p_ss, N, N
-        )
-        # fd_mod.fdiff.get_steady_gl10_2d(
-        #     dt, check_step, 1./(m*gamma), dx, drift1, drift2, p_initial, p_ss, N
+        # spectral_mod.fft_solve.get_spectral_steady_ft(
+        #     dt, check_step, 1./(m*gamma), problem.dx, problem.dy, 
+        #     drift1, ddrift1, drift2, ddrift2, p_initial, p_ss, N, N
         #     )
+        # spectral_mod.fft_solve.get_spectral_steady_gl(
+        #     dt, check_step, 1./(m*gamma), problem.dx, problem.dy, 
+        #     drift1, ddrift1, drift2, ddrift2, 
+        #     p_initial, p_ss, N, N
+        #     )
+        spectral_mod.fft_solve.get_spectral_steady_explicit(
+            dt, check_step, 1./(m*gamma), problem.dx, problem.dy, 
+            drift1, ddrift1, drift2, ddrift2, 
+            p_initial, p_ss, N, N
+            )
 
     print(
         f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Reference simulation done!")
