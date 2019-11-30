@@ -169,13 +169,19 @@ class problem_1D(object):
 class problem_2D(object):
 
     def __init__(
-        self, n=360, m=360,
+        self, x0=0.0, xn=2*pi, 
+        y0=0.0, ym=2*pi,
+        n=360, m=360,
         E0=2.0, Ec=8.0, E1=2.0,
         num_minima0=3.0, num_minima1=3.0,
         D=0.001, psi0=0.0, psi1=0.0
         ):
 
         # unload the variables
+        self.x0 = x0 
+        self.xn = xn 
+        self.y0 = y0
+        self.ym = ym
         self.n = n # number of points in x
         self.m = m # number of points in y
         # barrier heights
@@ -195,12 +201,14 @@ class problem_2D(object):
         # compute the derived variables
 
         # discretization
-        self.dx = (2*pi)/self.n
-        self.dy = (2*pi)/self.m
+        self.L0 = xn-x0
+        self.L1 = ym-y0
+        self.dx = self.L0/self.n
+        self.dy = self.L1/self.m
 
         # grid
-        self.theta0 = linspace(0.0, 2.0*pi-self.dx, self.n)
-        self.theta1 = linspace(0.0, 2.0*pi-self.dy, self.m)
+        self.theta0 = linspace(x0, xn-self.dx, self.n)
+        self.theta1 = linspace(y0, ym-self.dy, self.m)
 
         # drift matrices
         self.mu1 = self.drift1()

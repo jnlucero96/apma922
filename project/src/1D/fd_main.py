@@ -12,6 +12,8 @@ from initialize import problem_1D, problem_2D
 from os import mkdir
 from os.path import isdir
 
+from sys import stderr
+
 import fd_mod
 
 set_printoptions(linewidth=500)
@@ -19,34 +21,22 @@ set_printoptions(linewidth=500)
 def get_params():
 
     # discretization parameters
-    dt = 1e-4  # time discretization. Keep this number low
-    N = 180 # inverse space discretization. Keep this number high!
-
-    # model-specific parameters
-    gamma = 1000.0  # drag
-    beta = 1.0  # 1/kT
-    m = 1.0  # mass
-
-    E = 0.5 # energy scale of system
+    dt = 1e-2  # time discretization. Keep this number low
+    N = 80 # inverse space discretization. Keep this number high!
+    M = 80 # inverse space discretization. Keep this number high!
 
     psi1 = 0.0 # force on system by chemical bath B1
     psi2 = 0.0 # force on system by chemical bath B2
 
-    n = 3.0 # number of minima in system potential
-
-    mode = "spec_addif"
-
-    dim = 2
-
-    return ( dt, N, gamma, beta, m, E, psi1, psi2, n, mode, dim )
+    return ( dt, N, M, psi1, psi2 )
 
 def save_data_reference(
-    E, psi1, psi2, n, positions, p_ss, p_initial, p_equil,
-    potential_at_pos, drift_at_pos, diffusion_at_pos, N, dim
+    dt, psi0, psi1, p_ss, p_initial, p_equil,
+    potential_at_pos, mu1, mu2, N, M
     ):
 
     target_dir = './master_output_dir/'
-    data_filename = f'/ref_{dim}D_E_{E}_psi1_{psi1}_psi2_{psi2}_n_{n}_outfile.dat'
+    data_filename = f'/ref_dt_{dt}_psi0_{psi0}_psi1_{psi1}_outfile.dat'
     data_total_path = target_dir + data_filename
 
     if not isdir(target_dir):
@@ -55,117 +45,96 @@ def save_data_reference(
 
     with open(data_total_path, 'w') as dfile:
 
-        if (dim == 1):
-            for i in range(N):
+        for i in range(N):
+            for j in range(M):
                 dfile.write(
-                    f"{positions[i]:.15e}"
-                    + "\t" + f"{p_ss[i]:.15e}"
-                    + '\t' + f"{p_initial[i]:.15e}"
-                    + '\t' + f"{p_equil[i]:.15e}"
-                    + '\t' + f"{potential_at_pos[i]:.15e}"
-                    + '\t' + f"{drift_at_pos[i]:.15e}"
-                    + '\t' + f"{diffusion_at_pos[i]:.15e}"
+                    f"{p_ss[i,j]:.15e}"
+                    + '\t' + f"{p_initial[i,j]:.15e}"
+                    + '\t' + f"{p_equil[i,j]:.15e}"
+                    + '\t' + f"{potential_at_pos[i,j]:.15e}"
+                    + '\t' + f"{mu1[i,j]:.15e}"
+                    + '\t' + f"{mu2[i,j]:.15e}"
                     + '\n'
                 )
-        elif (dim == 2):
-            for i in range(N):
-                for j in range(N):
-                    dfile.write(
-                        f"{positions[i,j]:.15e}"
-                        + "\t" + f"{p_ss[i,j]:.15e}"
-                        + '\t' + f"{p_initial[i,j]:.15e}"
-                        + '\t' + f"{p_equil[i,j]:.15e}"
-                        + '\t' + f"{potential_at_pos[i,j]:.15e}"
-                        + '\t' + f"{drift_at_pos[i,j]:.15e}"
-                        + '\t' + f"{diffusion_at_pos[i,j]:.15e}"
-                        + '\n'
-                    )
 
 def main():
 
     # unload parameters
-    [ dt, N, gamma, beta, m, E, psi1, psi2, n, mode, dim ] = get_params()
+    [ dt, N, M, psi1, psi2 ] = get_params()
 
-    # calculate derived discretization parameters
-    dx = (2*pi)/N  # space discretization: total distance / number of points
-
-    # # provide CSL criteria to make sure simulation doesn't blow up
-    # if E == 0.0:
-    #     time_check = 100000000.0
-    # else:
-    #     time_check = dx*m*gamma / (3*E)
-
-    # if dt > time_check:
-    #     print("!!!TIME UNSTABLE!!! No use in going on. Aborting...\n")
-    #     exit(1)
-
-    # how many time update steps before checking for steady state convergence
     # enforce steady state convergence check every unit time
     check_step = int(1.0/dt)
 
     print(f"Number of times before check = {check_step}")
 
-    print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Launching reference simulation...")
-    if (dim == 1):
-        # set initial distribution to be the uniform distribution
-        p_initial = ones(N, order="F")/N
-        # initialize array which holds the steady state distribution
-        p_ss = zeros(N, order="F")
+    print(
+        f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Launching reference simulation..."
+        )
 
-        problem_object = problem_1D(
-            n=N, E=E, num_minima=n, D=1./(m*gamma), psi=psi1+psi2, mode=mode
+    # set initial distribution to be the uniform distribution
+    p_initial = ones((N,M), order="F")/(N*M)
+    # initialize array which holds the steady state distribution
+    p_ss = zeros((N,M), order="F")
+
+    problem = problem_2D(
+        x0=0.0, xn=2.0*pi, y0=0.0, ym=2.0*pi, n=N, m=M, 
+        E0=2.0, Ec=0.6, E1=2.0, num_minima0=3.0, num_minima1=3.0, 
+        D=0.001, psi0=psi1, psi1=psi2
+        )
+
+    drift1 = zeros((N,M), order="F")
+    drift2 = zeros((N,M), order="F")
+    drift1[...] = problem.mu1
+    drift2[...] = problem.mu2
+
+    # modes for solver:
+    # 1 := forward-euler
+    # 2 := rk2
+
+    start_time = datetime.now() # record starting time
+    fd_mod.fdiff.get_fd_steady(
+        dt, 1, check_step, problem.D, problem.dx, problem.dy,
+        drift1, drift2, p_initial, p_ss, problem.n, problem.m
+        )
+    end_time = datetime.now() # record ending time
+
+    print(
+        f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Reference simulation done!"
+        )
+
+    print(
+        f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Processing data..."
+        )
+
+    # set all small enough numbers to zero
+    p_ss[p_ss.__abs__() <= finfo("float64").eps] = 0.0
+
+    if not ((p_ss >= 0.0).all()):
+        print(
+            "Probability density has non-negligible negative values!",
+            file=stderr
             )
+    if not ((abs(p_ss.sum()-1.0) < finfo("float32").eps)):
+        print("Probability density is not normalized!", file=stderr)
 
-        drift = zeros(N, order="F")
-        drift[...] = problem_object.mu
-        # fd_mod.fdiff.get_steady_ft_1d(
-        #     dt, check_step, 1./(m*gamma), dx, drift, p_initial, p_ss, N
-        #     )
-        fd_mod.fdiff.get_steady_gl10_1d(
-            dt, check_step, 1./(m*gamma), dx, drift, p_initial, p_ss, N
-            )
-    else:
-        # set initial distribution to be the uniform distribution
-        p_initial = ones((N,N), order="F")/(N*N)
-        # initialize array which holds the steady state distribution
-        p_ss = zeros((N,N), order="F")
-
-        problem_object = problem_2D(
-            n=N, m=N, E0=E, Ec=0.6, E1=E, num_minima0=n, num_minima1=n, 
-            D=1./(m*gamma), psi0=psi1, psi1=psi2, mode=mode
-            )
-
-        drift1 = zeros((N,N), order="F"); drift2 = zeros((N,N), order="F")
-        drift1[...] = problem_object.mu1
-        drift2[...] = problem_object.mu2
-        fd_mod.fdiff.get_steady_ft_2d(
-            dt, check_step, 1./(m*gamma), dx, drift1, drift2, p_initial, p_ss, N
-            )
-        # fd_mod.fdiff.get_steady_gl10_2d(
-        #     dt, check_step, 1./(m*gamma), dx, drift1, drift2, p_initial, p_ss, N
-        #     )
-
-    print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Reference simulation done!")
-
-    print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Processing data...")
-
-    # checks to make sure nothing went weird
-    # check non-negativity of distribution
-    assert (p_ss >= 0.0).all(), \
-        "ABORT: Probability density has negative values!"
-    # check normalization of distribution
-    assert (abs(p_ss.sum() - 1.0) <= finfo('float32').eps), \
-        "ABORT: Probability density is not normalized!"
-
-    print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Processing finished!")
+    print(
+        f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Processing finished!"
+        )
 
     # write to file
     print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Saving data...")
     save_data_reference(
-        E, psi1, psi2, n, problem_object.theta, p_ss, p_initial, problem_object.p_equil,
-        problem_object.Epot, problem_object.mu, problem_object.D, N, dim
+        dt, problem.psi0, problem.psi1, p_ss, p_initial, problem.p_equil,
+        problem.Epot, problem.mu1, problem.mu2, problem.n, problem.m
         )
     print(f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Saving completed!")
+
+    print(
+        f"Total simulation time elapsed (minutes): {(end_time-start_time).total_seconds()/60.0}"
+        )
+    print(
+        f"Max inf-norm error of solution: {(p_ss-problem.p_equil).__abs__().max()}"
+        )
 
     print("Exiting...")
 
