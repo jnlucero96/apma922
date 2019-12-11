@@ -9,6 +9,7 @@ real(8), parameter :: pi = 4.0*atan(1.0)
 
 contains
 
+! propagate initial distribution until it reaches steady-state
 subroutine get_spectral_steady( &
     n, m, dt, scheme, check_step, D, dx, dy, &
     mu1, dmu1, mu2, dmu2, p_initial, p_final, refarray &
@@ -47,9 +48,6 @@ subroutine get_spectral_steady( &
 
     pr = p_initial
 
-    ! call dfftw_init_threads(status)
-    ! call dfftw_plan_with_nthreads(2)
-
     ! planning is good
     call dfftw_plan_dft_2d(plan0,n,m,pr,phat_mat,FFTW_FORWARD,FFTW_ESTIMATE)
     call dfftw_plan_dft_2d(plan1,n,m,phat_mat,px_now,FFTW_BACKWARD,FFTW_ESTIMATE)
@@ -76,6 +74,7 @@ subroutine get_spectral_steady( &
     kx = spread(fftfreq(n,dx),2,m)
     ky = spread(fftfreq(m,dy),1,n)
 
+    ! special set up step for etd method
     if (scheme .eq. 6) then
 
         kkx = kx; kky = ky
@@ -104,7 +103,7 @@ subroutine get_spectral_steady( &
 
     do while (cc)
 
-        ! update probabilities using an given scheme
+        ! update probabilities using specified scheme
         select case (scheme)
             case(1); call forward_euler(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p_now, D, dt)
             case(2); call imex(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p_now, D, dt)
@@ -127,9 +126,10 @@ subroutine get_spectral_steady( &
 
             call dfftw_execute(plan1, phat_mat, px_now)
 
+            ! check normalization and non-negativity of distributions
             ! bail at first sign of trouble
             if (abs(sum(realpart(px_now)/(n*m)) - 1.0) .ge. float32_eps) stop "Normalization broken!"
-            if (count(realpart(px_now)/(n*m) < -float64_eps) .ge. 1) stop "Negative probabilities"
+            if (count(realpart(px_now)/(n*m) < -float64_eps) .ge. 1) stop "Negative probabilities!"
 
             ! compute total variation distance
             tot_var_dist = 0.5*sum(abs(p_last_ref-(realpart(px_now)/(n*m))))
@@ -157,11 +157,15 @@ subroutine get_spectral_steady( &
 
     p_final = 0.0; p_final = realpart(p_penultimate)/(n*m)
 
-    refarray(1) = num_checks
+    refarray(1) = num_checks ! record the number of checks
 
+    ! final checks on distribution before exiting subroutine
+    ! bail if checks fail
     if (abs(sum(p_final) - 1.0) .ge. float32_eps) stop "Normalization broken!"
+    if (count(p_final < -float64_eps) .ge. 1) stop "Negative probabilities!"
 end subroutine get_spectral_steady
 
+! propogate distribution for a set time
 subroutine get_spectral_fwd( &
     nsteps, ntrack, n, m, dt, scheme, check_step, D, dx, dy, &
     mu1, dmu1, mu2, dmu2, p_initial, p_trace &
@@ -240,7 +244,7 @@ subroutine get_spectral_fwd( &
 
     do i=1,nsteps
 
-        ! update probabilities using an given scheme
+        ! update probabilities using specified scheme
         select case (scheme)
             case(1); call forward_euler(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p_now, D, dt)
             case(2); call imex(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p_now, D, dt)
@@ -278,21 +282,24 @@ subroutine get_spectral_fwd( &
     call dfftw_destroy_plan(plan1)
 end subroutine get_spectral_fwd
 
+! simple wrapper for taking a Forward Euler step
 subroutine forward_euler(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p, D, dt)
     integer(8), intent(in) :: n, m
-    real(8), dimension(n,m), intent(in) :: mu1, dmu1, mu2, dmu2, kx, ky
+    real(8), dimension(n,m), intent(in) :: mu1, dmu1, mu2, dmu2
+    real(8), dimension(n,m), intent(in) :: kx, ky
     complex(8), dimension(n*m+1), intent(inout) :: p
     real(8), intent(in) :: D, dt
     complex(8), dimension(:), allocatable :: update
 
     allocate( update(n*m+1) )
 
-    call evalf(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p, update)
+    call evalRHS(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p, update)
 
     ! update the solution
     p = p + dt*update
 end subroutine forward_euler
 
+! wrapper for Crank-Nicolson Forward Euler (CNFT) scheme
 subroutine imex(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p, D, dt)
     integer(8), intent(in) :: n, m
     real(8), dimension(n,m), intent(in) :: mu1, dmu1, mu2, dmu2, kx, ky
@@ -302,12 +309,14 @@ subroutine imex(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p, D, dt)
 
     allocate( update(n*m+1) )
 
-    call evalf2(n, m, D, dt, mu1, mu2, dmu1, dmu2, kx, ky, p, update)
+    call evalRHS2(n, m, D, dt, mu1, mu2, dmu1, dmu2, kx, ky, p, update)
 
     p = update
 end subroutine imex
 
 ! 2nd order Runge-Kutta integrator with fixed step size
+! derivative of RK4 scheme drawn from "Numerical Recipes in Fortran" by
+! Press et al.
 subroutine rk2(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p, D, dt)
     integer(8), intent(in) :: n, m
     real(8), dimension(n,m), intent(in) :: mu1, dmu1, mu2, dmu2, kx, ky
@@ -317,10 +326,10 @@ subroutine rk2(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p, D, dt)
 
     allocate( update(n*m+1), yt(n*m+1), dydx(n*m+1), dyt(n*m+1) )
 
-    call evalf(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p, dydx)
+    call evalRHS(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p, dydx)
     yt = p + dt*dydx
 
-    call evalf(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, yt, dyt)
+    call evalRHS(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, yt, dyt)
 
     update = dt*(dydx + dyt)/2.0
 
@@ -329,97 +338,116 @@ subroutine rk2(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p, D, dt)
 end subroutine rk2
 
 ! 4th order Runge-Kutta integrator with fixed step size
+! naming conventions drawn from Kassam and Trefethen (2005)
 subroutine rk4(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p, D, dt)
     integer(8), intent(in) :: n, m
-    real(8), dimension(n,m), intent(in) :: mu1, dmu1, mu2, dmu2, kx, ky
+    real(8), dimension(n,m), intent(in) :: mu1, dmu1, mu2, dmu2
+    real(8), dimension(n,m), intent(in) :: kx, ky
     complex(8), dimension(n*m+1), intent(inout) :: p
     real(8), intent(in) :: D, dt
-    complex(8), dimension(:), allocatable :: update, yt, dydx, dyt, dym
-    real(8) hh
+    complex(8), dimension(:), allocatable :: update, yt
+    complex(8), dimension(:), allocatable :: a, b, c, dd
+    real(8) hdt
 
-    allocate( update(n*m+1), yt(n*m+1), dydx(n*m+1), dyt(n*m+1), dym(n*m+1) )
+    allocate( &
+        update(n*m+1), yt(n*m+1), &
+        a(n*m+1), b(n*m+1), c(n*m+1), dd(n*m+1) &
+        )
 
-    hh = 0.5*dt
+    hdt = 0.5*dt
 
-    call evalf(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p, dydx)
-    yt = p + hh*dydx
+    call evalRHS(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p, a)
 
-    call evalf(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, yt, dyt)
-    yt = p + hh*dyt
+    call evalRHS(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p + hdt*a, b)
 
-    call evalf(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, yt, dym)
-    yt = p + dt*dym
-    dym = dyt + dym
+    call evalRHS(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p + hdt*b, c)
 
-    call evalf(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, yt, dyt)
+    call evalRHS(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p + dt*c, dd)
 
-    update = dt*(dydx + dyt + 2.0*dym)/6.0
+    update = dt*(a + 2.0*(b+c) + dd)/6.0
 
     ! update the solution
     p = p + update
 end subroutine rk4
 
 ! 4th order Runge-Kutta integrator using integrating factor
-subroutine ifrk4(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p, D, dt)
+! drawn from p.27 of "Spectral Methods in MATLAB by Trefethen"
+subroutine ifrk4(n, m, mu1, dmu1, mu2, dmu2, kx, ky, v, D, dt)
     integer(8), intent(in) :: n, m
-    real(8), dimension(n,m), intent(in) :: mu1, dmu1, mu2, dmu2, kx, ky
-    complex(8), dimension(n*m+1), intent(inout) :: p
+    real(8), dimension(n,m), intent(in) :: mu1, dmu1, mu2, dmu2
+    real(8), dimension(n,m), intent(in) :: kx, ky
+    complex(8), dimension(n*m+1), intent(inout) :: v
     real(8), intent(in) :: D, dt
-    complex(8), dimension(:), allocatable :: update, yt, dydx, dyt, dym, EE, EE2
+    complex(8), dimension(:), allocatable :: update
+    complex(8), dimension(:), allocatable :: a, b, c, dd, E, E2
 
-    allocate( update(n*m+1), yt(n*m+1), dydx(n*m+1), dyt(n*m+1), dym(n*m+1), EE(n*m+1), EE2(n*m+1) )
+    allocate( &
+        update(n*m+1), &
+        a(n*m+1), b(n*m+1), c(n*m+1), dd(n*m+1), &
+        E(n*m+1), E2(n*m+1) &
+        )
 
-    EE(:n*m) = pack(exp(-0.5*D*(kx**2+ky**2)*dt), .TRUE.); EE(n*m+1) = 1.0
-    EE2 = EE**2
+    ! define integrating factor
+    E(:n*m) = pack(exp(-dt*D*(kx**2+ky**2)/2.0), .TRUE.); E(n*m+1) = 1.0
+    E2 = E**2
 
-    call evalf_etd(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p, dydx)
-    yt = EE*(p + 0.5*dydx)
+    call evalRHS_nonlinear(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, v, a)
 
-    call evalf_etd(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, yt, dyt)
-    yt = EE*p + 0.5*dyt
+    call evalRHS_nonlinear( &
+        n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, E*(v + a/2.0), b &
+        )
 
-    call evalf_etd(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, yt, dym)
-    yt = EE2*p + EE*dym
-    dym = dyt + dym
+    call evalRHS_nonlinear( &
+        n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, (E*v + b/2.0), c &
+        )
 
-    call evalf_etd(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, yt, dyt)
+    call evalRHS_nonlinear( &
+        n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, (E2*v + E*c), dd &
+        )
 
-    update = dt*(EE2*dydx + dyt + 2.0*EE*dym)/6.0
+    update = dt*(E2*a + 2.0*E*(b+c) + dd)/6.0
 
-    ! update the solution
-    p = EE2*p + update
+    ! uvdate the solution
+    v = E2*v + update
 end subroutine ifrk4
 
 ! 4th order Runge-Kutta integrator using exponential time differencing
+! drawn from "kursiv.m" by Trefethen
 subroutine etdrk4( &
-    n, m, mu1, dmu1, mu2, dmu2, kx, ky, p, D, dt, EE, EE2, Q, f1, f2, f3 &
+    n, m, mu1, dmu1, mu2, dmu2, kx, ky, v, D, dt, &
+    EE, EE2, Q, f1, f2, f3 &
     )
     integer(8), intent(in) :: n, m
-    real(8), dimension(n,m), intent(in) :: mu1, dmu1, mu2, dmu2, kx, ky
-    complex(8), dimension(n*m+1), intent(inout) :: p
+    real(8), dimension(n,m), intent(in) :: mu1, dmu1, mu2, dmu2
+    real(8), dimension(n,m), intent(in) :: kx, ky
+    complex(8), dimension(n*m+1), intent(inout) :: v
     real(8), intent(in) :: D, dt
-    real(8), dimension(n*m+1), intent(in) :: EE, EE2, Q, f1, f2, f3
-    complex(8), dimension(:), allocatable :: update, yta, yt, dydx, dyt, dym
+    real(8), dimension(n*m+1), intent(in) :: EE, EE2
+    real(8), dimension(n*m+1), intent(in) :: Q, f1, f2, f3
+    complex(8), dimension(:), allocatable :: update, a, b, c
+    complex(8), dimension(:), allocatable :: Nv, Na, Nb, Nc
 
-    allocate( update(n*m+1), yta(n*m+1), yt(n*m+1), dydx(n*m+1), dyt(n*m+1), dym(n*m+1) )
+    allocate( &
+        update(n*m+1), a(n*m+1), b(n*m+1), c(n*m+1), &
+        Nv(n*m+1), Na(n*m+1), Nb(n*m+1), Nc(n*m+1) &
+        )
 
-    call evalf_etd(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p, dydx)
-    yta = (EE2*p + dt*Q*dydx)
+    call evalRHS_nonlinear(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, v, Nv)
+    a = (EE2*v + dt*Q*Nv)
 
-    call evalf_etd(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, yta, dyt)
-    yt = (EE2*p + dt*Q*dyt)
+    call evalRHS_nonlinear(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, a, Na)
+    b = (EE2*v + dt*Q*Na)
 
-    call evalf_etd(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, yt, dym)
-    yt = (EE2*yta + dt*Q*(-dydx+2.0*dym))
-    dym = dyt + dym
+    call evalRHS_nonlinear(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, b, Nb)
+    c = (EE2*a + dt*Q*(2.0*Nb-Nv))
 
-    call evalf_etd(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, yt, dyt)
+    call evalRHS_nonlinear(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, c, Nc)
 
-    update = dt*(dydx*f1 + dyt*f3 + 2.0*f2*dym)
+    update = dt*(Nv*f1 + 2.0*f2*(Na+Nb) + Nc*f3)
     update(n*m+1) = dt ! manually update the time
 
     ! update the solution
-    p = EE*p + update
+    v = EE*v + update
 end subroutine etdrk4
 
 ! 2nd order implicit Gauss-Legendre integrator
@@ -442,7 +470,7 @@ subroutine gl02(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p, D, dt)
     ! iterate trial steps
     g = 0.0; do k = 1,16
             g(:,1) = g(:,1)*a
-            call evalf(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p+g(:,1)*dt, g(:,1))
+            call evalRHS(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p+g(:,1)*dt, g(:,1))
     end do
 
     update = g(:,1)*b*dt
@@ -473,7 +501,7 @@ subroutine gl04(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p, D, dt)
     g = 0.0; do k = 1,16
         g = matmul(g,a)
         do i = 1,s
-            call evalf(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p+g(:,i)*dt, g(:,i))
+            call evalRHS(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p+g(:,i)*dt, g(:,i))
         end do
     end do
 
@@ -507,7 +535,7 @@ subroutine gl06(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p, D, dt)
     g = 0.0; do k = 1,16
         g = matmul(g,a)
         do i = 1,s
-            call evalf(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p+g(:,i)*dt, g(:,i))
+            call evalRHS(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p+g(:,i)*dt, g(:,i))
         end do
     end do
 
@@ -548,7 +576,7 @@ subroutine gl08(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p, D, dt)
     g = 0.0; do k = 1,16
         g = matmul(g,a)
         do i = 1,s
-            call evalf(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p+g(:,i)*dt, g(:,i))
+            call evalRHS(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p+g(:,i)*dt, g(:,i))
         end do
     end do
 
@@ -596,7 +624,7 @@ subroutine gl10(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p, D, dt)
     do k = 1,16
         g = matmul(g,a)
         do i = 1,s
-            call evalf(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p+g(:,i)*dt, g(:,i))
+            call evalRHS(n, m, D, mu1, mu2, dmu1, dmu2, kx, ky, p+g(:,i)*dt, g(:,i))
         end do
     end do
 
@@ -606,8 +634,8 @@ subroutine gl10(n, m, mu1, dmu1, mu2, dmu2, kx, ky, p, D, dt)
     p = p + update
 end subroutine gl10
 
-! represent f entirely explicitly
-subroutine evalf( &
+! represent entire RHS
+subroutine evalRHS( &
     n, m, D, &
     mu1, mu2, dmu1, dmu2, kx, ky, in_array, update &
     )
@@ -644,10 +672,10 @@ subroutine evalf( &
     call dfftw_plan_dft_2d(plan3,n,m,out0,phat0,FFTW_FORWARD,FFTW_ESTIMATE)
 
     phat1 = (0.0,1.0)*kx*pr;
-    if (modulo(n,2) .eq. 0) phat1(n/2+1,:) = 0.0
+    if (modulo(n,2) .eq. 0) phat1(n/2,:) = 0.0
 
     phat2 = (0.0,1.0)*ky*pr;
-    if (modulo(m,2) .eq. 0) phat2(:,m/2+1) = 0.0
+    if (modulo(m,2) .eq. 0) phat2(:,m/2) = 0.0
 
     phat3 = -D*( kx**2+ky**2 )*pr
 
@@ -677,16 +705,18 @@ subroutine evalf( &
     update = 0.0
     update(:n*m) = pack(phat0 + phat3,.TRUE.)
     update(n*m+1) = 1.0
-end subroutine evalf
+end subroutine evalRHS
 
-! represent f entirely explicitly
-subroutine evalf_etd( &
+! same as evalRHS but only evaluate the non-linear terms
+! ie. don't evaluate the diffusion term
+subroutine evalRHS_nonlinear( &
     n, m, D, &
     mu1, mu2, dmu1, dmu2, kx, ky, in_array, update &
     )
     integer(8), intent(in) :: n, m
     real(8), intent(in) :: D
-    real(8), dimension(n,m), intent(in) :: mu1, mu2, dmu1, dmu2, kx, ky
+    real(8), dimension(n,m), intent(in) :: mu1, mu2
+    real(8), dimension(n,m), intent(in) :: dmu1, dmu2, kx, ky
     complex(8), dimension(n*m+1), intent(in) :: in_array
     complex(8), dimension(n*m+1), intent(inout) :: update
 
@@ -717,10 +747,10 @@ subroutine evalf_etd( &
     call dfftw_plan_dft_2d(plan3,n,m,out0,phat0,FFTW_FORWARD,FFTW_ESTIMATE)
 
     phat1 = (0.0,1.0)*kx*pr;
-    if (modulo(n,2) .eq. 0) phat1(n/2+1,:) = 0.0
+    if (modulo(n,2) .eq. 0) phat1(n/2,:) = 0.0
 
     phat2 = (0.0,1.0)*ky*pr;
-    if (modulo(m,2) .eq. 0) phat2(:,m/2+1) = 0.0
+    if (modulo(m,2) .eq. 0) phat2(:,m/2) = 0.0
 
     ! go back into real space
     call dfftw_execute_dft(plan0, pr, out0)
@@ -748,10 +778,10 @@ subroutine evalf_etd( &
     update = 0.0
     update(:n*m) = pack(phat0,.TRUE.)
     update(n*m+1) = 1.0
-end subroutine evalf_etd
+end subroutine evalRHS_nonlinear
 
-! integrator for implicit-explicit methods
-subroutine evalf2( &
+! integrator for CNFT method
+subroutine evalRHS2( &
     n, m, D, dt, &
     mu1, mu2, dmu1, dmu2, kx, ky, in_array, update &
     )
@@ -822,8 +852,10 @@ subroutine evalf2( &
     update = 0.0
     update(:n*m) = pack((phat0 + phat3)/((1.0/dt)+0.5*D*( kx**2 + ky**2 )),.TRUE.)
     update(n*m+1) = 1.0
-end subroutine evalf2
+end subroutine evalRHS2
 
+! get the frequencies in the correct order
+! frequencies scaled appropriately to the length of the domain
 function fftfreq(n, d)
     integer(8), intent(in) :: n
     real(8), intent(in) :: d

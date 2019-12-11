@@ -49,7 +49,10 @@ def save_data_reference(
     scheme, dt, psi0, psi1, p_ss, p_equil, N, M
     ):
 
-    data_filename = f'/ref_scheme_{scheme}_dt_{dt}_N_{N}_M_{M}_psi0_{psi0}_psi1_{psi1}_outfile.dat'
+    data_filename = (
+        f"/ref_scheme_"
+        + f"{scheme}_dt_{dt}_N_{N}_M_{M}_psi0_{psi0}_psi1_{psi1}_outfile.dat"
+        )
     data_total_path = target_dir + data_filename
 
     if not isdir(target_dir):
@@ -70,7 +73,10 @@ def save_data_evolution(
     scheme, dt, psi0, psi1, p_trace, nchecks, N, M
     ):
 
-    data_filename = f'/evol_scheme_{scheme}_dt_{dt}_N_{N}_M_{M}_psi0_{psi0}_psi1_{psi1}_outfile.dat'
+    data_filename = (
+        f"/evol_scheme_"
+        + "{scheme}_dt_{dt}_N_{N}_M_{M}_psi0_{psi0}_psi1_{psi1}_outfile.dat"
+        )
     data_total_path = target_dir + data_filename
 
     if not isdir(target_dir):
@@ -97,7 +103,8 @@ def main():
     print(f"Number of times before check = {check_step}")
 
     print(
-        f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Prepping reference simulation..."
+        f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} "
+        + "Prepping reference simulation..."
         )
 
     # define the problem
@@ -135,7 +142,8 @@ def main():
         refarray = zeros(1, order="F")
 
     print(
-        f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Starting reference simulation..."
+        f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} "
+        + "Starting reference simulation..."
         )
 
     start_time = datetime.now() # record starting time
@@ -152,22 +160,30 @@ def main():
     end_time = datetime.now() # record ending time
 
     print(
-        f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Reference simulation done!"
+        f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} "
+        + "Reference simulation done!"
         )
 
     print(
-        f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Processing data...")
+        f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} "
+        + "Processing data..."
+        )
 
     if not steady:
         # set all small enough numbers to zero
         p_trace[p_trace.__abs__() <= finfo("float64").eps] = 0.0
 
         if not ((p_trace >= 0.0).all()):
+
             print(
                 "Probability density has non-negligible negative values!",
                 file=stderr
                 )
-        if not (((p_trace.sum(axis=(0,1)) - 1.0).__abs__() <= finfo('float32').eps).all()):
+
+        if not (
+            ((p_trace.sum(axis=(0,1)) - 1.0).__abs__()
+                <= finfo('float32').eps).all()):
+
             print("Probability density is not normalized!", file=stderr)
     else:
         # set all small enough numbers to zero
@@ -179,7 +195,10 @@ def main():
                 file=stderr
                 )
         if not ((abs(p_ss.sum() - 1.0) <= finfo('float32').eps)):
-            print(f"{p_ss.sum()} => Probability density is not normalized!", file=stderr)
+            print(
+                f"{p_ss.sum()} => Probability density is not normalized!",
+                file=stderr
+                )
 
     print(
         f"{datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')} Processing finished!"
@@ -203,17 +222,26 @@ def main():
 
     if steady:
         print(
-            f"Total time simulation time elapsed (minutes): {(end_time-start_time).total_seconds()/60.0}\n"
+            "Total time simulation time elapsed (minutes): "
+            + f"{(end_time-start_time).total_seconds()/60.0}\n"
             + f"Number of checks: {refarray[0]}\n"
-            + f"Max inf-norm error of solution: {(p_ss-problem.p_equil).__abs__().max()}"
+            + "Max inf-norm error of solution: "
+            + f"{(p_ss-problem.p_equil).__abs__().max()}"
             )
-        with open(target_dir + f"/fd_oversight_scheme_{scheme}_dt_{dt}_file.dat", "a") as datfile:
+        with open(
+            target_dir + f"/fd_oversight_scheme_{scheme}_dt_{dt}_file.dat", "a"
+            ) as datfile:
+
             datfile.write(
-                f"{problem.n}\t{problem.m}\{refarray[0]}\t{(end_time-start_time).total_seconds()/60.0}\t{(p_ss-problem.p_equil).__abs__().max()}\n"
+                f"{problem.n}\t{problem.m}\t"
+                + f"{refarray[0]}\t"
+                + f"{(end_time-start_time).total_seconds()/60.0}\t"
+                + f"{(p_ss-problem.p_equil).__abs__().max()}\n"
                 )
     else:
         print(
-            f"Total time simulation time elapsed (minutes): {(end_time-start_time).total_seconds()/60.0}"
+            "Total time simulation time elapsed (minutes): "
+            + f"{(end_time-start_time).total_seconds()/60.0}"
             )
 
     print("Exiting...")

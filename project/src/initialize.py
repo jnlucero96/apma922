@@ -70,7 +70,11 @@ class problem_1D(object):
         D1 = zeros((self.n,self.n), order="F")
 
         # define first-derivative matrix based on centered difference
-        D1[...] = -diag(self.mu[:-1],-1) + diag(zeros(self.n)) + diag(self.mu[1:],1)
+        D1[...] = (
+            -diag(self.mu[:-1],-1)
+            + diag(zeros(self.n))
+            + diag(self.mu[1:],1)
+            )
         D1[0,-1] = -self.mu[-1]; D1[-1,0] = self.mu[0] #enforce periodicity
 
         return D1
@@ -98,7 +102,11 @@ class problem_1D(object):
         D2 = zeros((self.n,self.n), order="F")
 
         # define central-space differentiation matrix
-        D2[...] = diag(ones(self.n-1),-1) + diag(-2.0*ones(self.n)) + diag(ones(self.n-1),1)
+        D2[...] = (
+            diag(ones(self.n-1),-1)
+            + diag(-2.0*ones(self.n))
+            + diag(ones(self.n-1),1)
+            )
         D2[0,-1] = 1.0; D2[-1,0] = 1.0 # enforce periodicity
 
         # scale the matrices appropriately
@@ -169,7 +177,7 @@ class problem_1D(object):
 class problem_2D(object):
 
     def __init__(
-        self, x0=0.0, xn=2*pi, 
+        self, x0=0.0, xn=2*pi,
         y0=0.0, ym=2*pi,
         n=360, m=360,
         E0=2.0, Ec=8.0, E1=2.0,
@@ -178,8 +186,9 @@ class problem_2D(object):
         ):
 
         # unload the variables
-        self.x0 = x0 
-        self.xn = xn 
+        # define the end points of the intervals
+        self.x0 = x0
+        self.xn = xn
         self.y0 = y0
         self.ym = ym
         self.n = n # number of points in x
@@ -192,9 +201,10 @@ class problem_2D(object):
         self.num_minima0 = num_minima0
         self.num_minima1 = num_minima1
 
+        # diffusivity
         self.D = D
 
-        # self.D = D*ones((self.n*self.m,self.n*self.m)) # diffusion tensor
+        # nonequilibrium forces
         self.psi0 = psi0
         self.psi1 = psi1
 
@@ -217,11 +227,12 @@ class problem_2D(object):
         self.dmu2 = self.ddrift2()
 
         # potential landscape
-        self.Epot = self.potential() 
+        self.Epot = self.potential()
 
         # define equilibrium distribution
         self.p_equil = exp(-self.Epot)/exp(-self.Epot).sum()
 
+    # define the potential V
     def potential(self):
         return 0.5*(
             self.E0*(1.0-cos(self.num_minima0*self.theta0[:,None]))
@@ -229,25 +240,26 @@ class problem_2D(object):
             + self.E1*(1.0-cos(self.num_minima1*self.theta1[None,:]))
             )
 
-    # define drift vector
+    # define drift vector mu_{1}
     def drift1(self):
         return -(
             0.5*(self.Ec*sin(self.theta0[:,None]-self.theta1[None,:])
             + self.E0*self.num_minima0*sin(self.num_minima0*self.theta0[:,None])
             ) - self.psi0)
+
+    # define drift vector mu_{2}
     def drift2(self):
         return -(
             0.5*(-self.Ec*sin(self.theta0[:,None]-self.theta1[None,:])
             + self.E1*self.num_minima1*sin(self.num_minima1*self.theta1[None,:])
             ) - self.psi1)
 
-    # additional derivatives
+    # additional derivatives of the drift vectors above
     def ddrift1(self):
         return -(
             0.5*(self.Ec*cos(self.theta0[:,None]-self.theta1[None,:])
             + self.E0*(self.num_minima0**2)*cos(self.num_minima0*self.theta0[:,None])
             ))
-
     def ddrift2(self):
         return -(
             0.5*(self.Ec*cos(self.theta0[:,None]-self.theta1[None,:])

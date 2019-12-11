@@ -4,7 +4,8 @@ from math import pi
 import numpy as np
 
 from matplotlib.style import use
-use("dark_background")
+# use("dark_background")
+use(["seaborn", "seaborn-paper"])
 from matplotlib.cm import get_cmap
 from pltconfig import *
 from matplotlib.pyplot import figure
@@ -20,10 +21,10 @@ def get_params():
     N = 60  # inverse space discretization. Keep this number high!
     M = 60  # inverse space discretization. Keep this number high!
 
-    psi1 = 2.0  # force on system by chemical bath B1
-    psi2 = -1.0  # force on system by chemical bath B2
+    psi1 = 0.0  # force on system by chemical bath B1
+    psi2 = 0.0  # force on system by chemical bath B2
 
-    steady = False # evolve to steady-state distribution
+    steady = True # evolve to steady-state distribution
 
     # modes for solver:
     # 1 := forward-euler
@@ -37,7 +38,7 @@ def get_params():
     # 9 := gl08
     # 10 := gl10
 
-    scheme = 2
+    scheme = 6
 
     return ( dt, N, M, psi1, psi2, steady, scheme )
 
@@ -66,12 +67,12 @@ def plot_equilibrium():
             0.0, 1.05*problem.p_equil.max(),
             problem.n*problem.m
             ).reshape(problem.n, problem.m), 30,
-        vmin=0.0, vmax=problem.p_equil.max(), cmap=get_cmap("Purples_r")
+        vmin=0.0, vmax=problem.p_equil.max(), cmap=get_cmap("afmhot")
         )
 
     ax.contourf(
         problem.theta0, problem.theta1, problem.p_equil, 30,
-        vmin=0.0, vmax=problem.p_equil.max(), cmap=get_cmap("Purples_r")
+        vmin=0.0, vmax=problem.p_equil.max(), cmap=get_cmap("afmhot")
         )
 
     fig.tight_layout()
@@ -96,14 +97,14 @@ def plot_equilibrium():
 
 def analyze_oversight():
 
-    [ _, _, _, psi0, psi1, steady, scheme ] = get_params()
+    [ _, _, _, psi0, psi1, _, scheme ] = get_params()
 
     target_dir = './master_output_dir/'
-    data_dir = "/Users/jlucero/data_dir/2019-12-02/"
+    data_dir = "/Users/jlucero/data_dir/2019-12-03/"
 
     dtlist = [5e-1, 1e-1, 1e-2, 1e-3]
 
-    spatial_type = "fd"
+    spatial_type = "sp"
 
     Ndicts = {}; tdicts = {}; errdicts = {}
 
@@ -138,6 +139,7 @@ def analyze_oversight():
         except KeyError:
             print(f"{dt} not present. Not plotting as result.")
 
+    ax.set_xticks([60.0, 120.0, 180.0, 240.0, 300.0, 360.0])
     ax.set_xlim([60.0, 361.0])
     ax.set_ylim([1e-3, 1e3])
     ax.set_yscale("log")
@@ -146,6 +148,7 @@ def analyze_oversight():
     ax.tick_params(labelsize=34)
 
     fig.tight_layout()
+    fig.subplots_adjust(top=0.97)
     fig.savefig(target_dir + f"/{spatial_type}_scheme_{scheme}_time_figure.pdf")
 
     fig2, ax2 = subplots(1,1)
@@ -159,6 +162,7 @@ def analyze_oversight():
         except KeyError:
             print(f"{dt} not present. Not plotting as result.")
 
+    ax2.set_xticks([60.0, 120.0, 180.0, 240.0, 300.0, 360.0])
     ax2.set_xlim([60.0, 361.0])
     ax2.set_ylim([1e-18, 1e-2])
     ax2.set_yscale("log")
@@ -167,7 +171,36 @@ def analyze_oversight():
     ax2.tick_params(labelsize=34)
 
     fig2.tight_layout()
+    fig2.subplots_adjust(top=0.97)
     fig2.savefig(target_dir + f"/{spatial_type}_scheme_{scheme}_err_figure.pdf")
+
+    fig3, ax3 = subplots(1,1)
+    ax3.set_ylabel(r"$t_{\mathrm{convergence}}$", fontsize=38)
+    ax3.set_xlabel(r"$E(N)$", fontsize=38)
+
+    for ii, dt in enumerate(dtlist):
+
+        try:
+            ax3.plot(
+                errdicts[dt], tdicts[dt], "o-",
+                color=f"C{ii}", ms=12, label=rf"${dt}$"
+                )
+        except KeyError:
+            print(f"{dt} not present. Not plotting as result.")
+
+    ax3.set_ylim([1e-3, 1e3])
+    ax3.set_xlim([1e-18, 1e-2])
+    ax3.set_xscale("log")
+    ax3.set_yscale("log")
+    ax3.grid(True)
+    ax3.legend(loc=0, prop={"size": 22}, title=r"$k$", title_fontsize=24)
+    ax3.tick_params(labelsize=34)
+
+    fig3.tight_layout()
+    fig3.subplots_adjust(top=0.97)
+    fig3.savefig(
+        target_dir + f"/{spatial_type}_scheme_{scheme}_time_err_figure.pdf"
+        )
 
 def trace():
 
@@ -208,7 +241,7 @@ def trace():
     ax.set_xlabel(r"$\theta_{0}$", fontsize=28)
     ax.set_xlim([problem.x0, problem.xn])
     ax.set_ylim([problem.y0, problem.ym])
-    
+
 
     fig.tight_layout()
 
@@ -245,6 +278,6 @@ def trace():
     ani.save(target_dir + f"evol_scheme_{scheme}_dt_{dt}_N_{N}_M_{M}_psi0_{psi0}_psi1_{psi1}_ani.mp4")
 
 if __name__ == "__main__":
-    # analyze_oversight()
-    trace()
+    analyze_oversight()
+    # trace()
     # plot_equilibrium()
