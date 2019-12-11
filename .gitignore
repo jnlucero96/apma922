@@ -1,0 +1,10 @@
+*.aux
+*.log
+*.synctex.*
+*.out
+*.mod
+*.so
+*.bbl
+*.blg
+*.so
+*.mod
