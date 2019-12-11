@@ -175,7 +175,7 @@ subroutine spatial_derivs_FD_2D( &
         + (in_array(2,1)-2.0*in_array(1,1)+in_array(n,1))/(dx*dx) &
         - (dmu2(1,2)*in_array(1,2)-dmu2(1,n)*in_array(1,n))/(2.0*dy) &
         + (in_array(1,2)-2.0*in_array(1,1)+in_array(1,n))/(dy*dy))
-    update(1,n) = D*(-(dmu1(2,n)*in_array(2,n)-dmu1(n,n)*in_array(n,n))/(2.0*dx) &
+    update(1,m) = D*(-(dmu1(2,n)*in_array(2,n)-dmu1(n,n)*in_array(n,n))/(2.0*dx) &
         + (in_array(2,n)-2.0*in_array(1,n)+in_array(n,n))/(dx*dx) &
         - (dmu2(1,1)*in_array(1,1)-dmu2(1,n-1)*in_array(1,n-1))/(2.0*dy) &
         + (in_array(1,1)-2.0*in_array(1,n)+in_array(1,n-1))/(dy*dy))
@@ -183,42 +183,43 @@ subroutine spatial_derivs_FD_2D( &
         + (in_array(1,1)-2.0*in_array(n,1)+in_array(n-1,1))/(dx*dx) &
         - (dmu2(n,2)*in_array(n,2)-dmu2(n,n)*in_array(n,n))/(2.0*dy) &
         + (in_array(n,2)-2.0*in_array(n,1)+in_array(n,n))/(dy*dy))
-    update(n,n) = D*(-(dmu1(1,n)*in_array(1,n)-dmu1(n-1,n)*in_array(n-1,n))/(2.0*dx) &
+    update(n,m) = D*(-(dmu1(1,n)*in_array(1,n)-dmu1(n-1,n)*in_array(n-1,n))/(2.0*dx) &
         + (in_array(1,n)-2.0*in_array(n,n)+in_array(n-1,n))/(dx*dx) &
         - (dmu2(n,1)*in_array(n,1)-dmu2(n,n-1)*in_array(n,n-1))/(2.0*dy) &
         + (in_array(n,1)-2.0*in_array(n,n)+in_array(n,n-1))/(dy*dy))
 
-    ! iterate through all the coordinates,not on the corners,for both variables
+    ! iterate through all the edge grid points, not on the corners, for both variables
     do i=2,n-1
-        !! Periodic boundary conditions:
-        !! Explicitly update FPE for edges not corners
-        update(1,i) = D*(-(dmu1(2,i)*in_array(2,i)-dmu1(n,i)*in_array(n,i))/(2.0*dx) &
-            + (in_array(2,i)-2*in_array(1,i)+in_array(n,i))/(dx*dx) &
-            - (dmu2(1,i+1)*in_array(1,i+1)-dmu2(1,i-1)*in_array(1,i-1))/(2.0*dy) &
-            + (in_array(1,i+1)-2*in_array(1,i)+in_array(1,i-1))/(dy*dy))
         update(i,1) = D*(-(dmu1(i+1,1)*in_array(i+1,1)-dmu1(i-1,1)*in_array(i-1,1))/(2.0*dx) &
             + (in_array(i+1,1)-2*in_array(i,1)+in_array(i-1,1))/(dx*dx) &
             - (dmu2(i,2)*in_array(i,2)-dmu2(i,n)*in_array(i,n))/(2.0*dy) &
             + (in_array(i,2)-2*in_array(i,1)+in_array(i,n))/(dy*dy))
+        update(i,m) = D*(-(dmu1(i+1,m)*in_array(i+1,m)-dmu1(i-1,m)*in_array(i-1,m))/(2.0*dx) &
+            + (in_array(i+1,m)-2.0*in_array(i,m)+in_array(i-1,m))/(dx*dx) &
+            - (dmu2(i,1)*in_array(i,1)-dmu2(i,m-1)*in_array(i,m-1))/(2.0*dy) &
+            + (in_array(i,1)-2.0*in_array(i,m)+in_array(i,m-1))/(dy*dy))
+    end do
+    do j=2,m-1
+        update(1,j) = D*(-(dmu1(2,j)*in_array(2,j)-dmu1(n,j)*in_array(n,j))/(2.0*dx) &
+            + (in_array(2,j)-2*in_array(1,j)+in_array(n,j))/(dx*dx) &
+            - (dmu2(1,j+1)*in_array(1,j+1)-dmu2(1,j-1)*in_array(1,j-1))/(2.0*dy) &
+            + (in_array(1,j+1)-2*in_array(1,j)+in_array(1,j-1))/(dy*dy))
+        update(n,j) = D*(-(dmu1(1,j)*in_array(1,j)-dmu1(n-1,j)*in_array(n-1,j))/(2.0*dx) &
+            + (in_array(1,j)-2.0*in_array(n,j)+in_array(n-1,j))/(dx*dx) &
+            - (dmu2(n,j+1)*in_array(n,j+1)-dmu2(n,j-1)*in_array(n,j-1))/(2.0*dy) &
+            + (in_array(n,j+1)-2.0*in_array(n,j)+in_array(n,j-1))/(dy*dy))
+    end do
 
-        !! all points with well defined neighbours go like so:
-        do j=2,n-1
+    !! all points with well defined neighbours go like so:
+    do i=2,n-1
+        do j=2,m-1
             update(i,j) = D*(-(dmu1(i+1,j)*in_array(i+1,j)-dmu1(i-1,j)*in_array(i-1,j))/(2.0*dx) &
                 + (in_array(i+1,j)-2.0*in_array(i,j)+in_array(i-1,j))/(dx*dx) &
                 - (dmu2(i,j+1)*in_array(i,j+1)-dmu2(i,j-1)*in_array(i,j-1))/(2.0*dy) &
                 + (in_array(i,j+1)-2.0*in_array(i,j)+in_array(i,j-1))/(dy*dy))
         end do
-
-        !! Explicitly update FPE for rest of edges not corners
-        update(n,i) = D*(-(dmu1(1,i)*in_array(1,i)-dmu1(n-1,i)*in_array(n-1,i))/(2.0*dx) &
-            + (in_array(1,i)-2.0*in_array(n,i)+in_array(n-1,i))/(dx*dx) &
-            - (dmu2(n,i+1)*in_array(n,i+1)-dmu2(n,i-1)*in_array(n,i-1))/(2.0*dy) &
-            + (in_array(n,i+1)-2.0*in_array(n,i)+in_array(n,i-1))/(dy*dy))
-        update(i,n) = D*(-(dmu1(i+1,n)*in_array(i+1,n)-dmu1(i-1,n)*in_array(i-1,n))/(2.0*dx) &
-            + (in_array(i+1,n)-2.0*in_array(i,n)+in_array(i-1,n))/(dx*dx) &
-            - (dmu2(i,1)*in_array(i,1)-dmu2(i,n-1)*in_array(i,n-1))/(2.0*dy) &
-            + (in_array(i,1)-2.0*in_array(i,n)+in_array(i,n-1))/(dy*dy))
     end do
+
 end subroutine spatial_derivs_FD_2D
 
 end module FDiff
