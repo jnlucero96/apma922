@@ -1,4 +1,4 @@
-\documentclass[12pt]{article}   	
+\documentclass[10pt]{article}   	
 
 % Document Formatting Packages
 \usepackage{geometry}            		
@@ -14,6 +14,7 @@
 \usepackage{amsmath,mathtools}
 \usepackage{framed}
 \usepackage{bm} % boldface greek symbols
+\usepackage{nicefrac}
 
 % Hyperref
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=red]{hyperref}
@@ -24,9 +25,9 @@
 \newcommand{\green}[1]{\textcolor{Green}{#1}}
 
 % Chemistry Typesetting Tools
-\usepackage{expl3}
-\usepackage{calc}
-\usepackage{mhchem}
+%\usepackage{expl3}
+%\usepackage{calc}
+%\usepackage{mhchem}
 
 % Physics Typesetting Tools
 \usepackage{physics}
@@ -37,7 +38,7 @@
 \graphicspath{ {images/} }	
 \usepackage[caption=false]{subfig}
 \usepackage[section]{placeins}
-		
+
 % Miscellaneous Symbol Packages
 \usepackage{textcomp}  		
 \usepackage{siunitx}
@@ -53,101 +54,441 @@
 \marginparsep = 0in
 \marginparwidth = 0in
 \footskip = 18pt
-\parindent=15pt
+\parindent=14pt
 \parskip=0pt
 
+\newcommand{\Dhat}{\hat{D}}
+\newcommand{\Phat}{\hat{P}}
+\newcommand{\mN}{\bm{\mathcal{N}}}
+\newcommand{\mF}{\mathcal{F}}
+\newcommand{\mFi}{\mathcal{F}^{-1}}
+\newcommand{\fo}{\mathrm{F}_{\rm o}}
+\newcommand{\fI}{\mathrm{F}_{1}}
+\newcommand{\fofI}{\mathrm{F}_{\rm o}\mathrm{F}_{1}}
+
 % Title
-\title{APMA 922: Project Proposal}
+\title{Pseudospectral Solutions to \\ 2D Advection-Diffusion Equations}
 \author{Joseph Lucero}
 \date{\today}
 
 \begin{document}
 \maketitle
 
+Molecular machines are stochastic systems that interconvert different forms of energy, such as chemical potential 
+energy and mechanical energy. Generally, these machines are comprised of many subunits that each perform a specific
+function. In this work, we explore different methods by which we can numerically evaluate solutions of a model that 
+captures some of the important behaviours of rotary, stochastic, coupled systems. In particular, this model contains an 
+explicit nonlinear degree of coupling between subunits that is not present in other models. We describe the dynamics of 
+this model using the Fokker-Planck equation. In this work we aim to examine different numerical methods which can yield
+accurate numerical solutions to this equation in an efficient manner. We find that, due to the details of the model, 
+Fourier pseudospectral methods are best suited to this endeavour, yielding over 4 orders of magnitude in improvement 
+of the spatial accuracy of the solution compared to that of a naive implementation of a finite difference method. 
+
 \section{Introduction}
 
-%\subsection{Stochastic Differential Equations}
-%In nonequilibrium statistical mechanics, and more generally in stochastic processes, the Langevin equation 
-%\begin{align}
-%    \dv[2]{\vb{r}}{t} = -\gamma\dv{\vb{r}}{t} - \grad{U(\vb{r},t)}+ \bm{\eta}(t)
-%\end{align}
-% with the position of the particle $\vb{r}$, $\gamma$ is the drag matrix, and noise term $\bm{\eta}(t)$, is a stochastic differential equation (SDE) governing the evolution of a subset of degrees of freedom in a given system which are slow, relative to the fast degrees of freedom that give rise to the stochastic forces. Here we consider cases where the drag matrix is diagonal and so we define $$\gamma_{i} = \gamma_{ij}\delta_{ij}$$ with $\delta_{ij}$ being the Kronecker delta, and the case where the noise term satisfies
-% \begin{subequations}
-%     \begin{align}
-%         \ev{\eta_{i}(t)} &= 0\ \forall\ i\\
-%         \ev{\eta_{i}(t)\eta_{j}(s)} &= 2\gamma_{i}\kT\delta_{ij}\delta(t-s),
-%     \end{align}
-%     \label{eq:noise_stats}
-% \end{subequations}
-%where $\delta(t-s)$ is the Dirac delta function. 
-% 
-% We can recapitulate this second-order SDE as two first-order SDEs for the position and the velocity
-% \begin{subequations}
-%     \begin{align}
-%        \dd{\vb{r}} &= \vb{v}\dd{t} + \sqrt{2\gamma_{1}\kT}\dd{W_{1}(t)}\\
-%        \dd{\vb{v}} &= -\left[\gamma_{2}\vb{v}+\grad{U(\vb{r},t)}\right]\dd{t} + \sqrt{2\gamma_{2}\kT}\dd{W_{2}(t)},
-%     \end{align}
-% \end{subequations}
-% with $\gamma = \zeta_{i} / m$, and Wiener increment $\dd{W(t)}$ that satisfies
-% \begin{subequations}
-%    \begin{align}
-%        \ev{\dd{W(t)}} &= 0\\
-%        \ev{\dd{W_{i}(t)}\dd{W_{j}(s)}} &= \dd{t}\delta_{ij}\delta(t-s).
-%    \end{align}     
-% \end{subequations}
-% We can then recast this into one single equation 
-% \begin{align}
-%    \dd{\vb{X}} = \bm{\mu}(\vb{X},t)\dd{t} + \bm{\sigma}(\vb{X},t)\dd{\vb{W}(t)},\label{eq:general_sde}
-% \end{align}
-%for the random vector,
-%\begin{align}
-%    \vb{X} = 
-%    \begin{bmatrix}
-%        \vb{r} \\ \vb{v}
-%    \end{bmatrix},
-%\end{align}
-%drift vector,
-%\begin{align}
-%    \bm{\mu}(\vb{X},t) = 
-%    \begin{bmatrix}
-%        \vb{v} \\ -\gamma\vb{v}-\grad{U(\vb{r},t)}
-%    \end{bmatrix}
-%\end{align}
-%and diagonal diffusion tensor,
-%\begin{align}
-%    D &= \dfrac{1}{2}\bm{\sigma}\bm{\sigma}^{\mathrm{T}} \\
-%    &= 
-%    \kT\begin{bmatrix}
-%        \gamma_{1} & 0 \\ 0 & \gamma_{2}
-%    \end{bmatrix}
-%\end{align}
-%where the diagonality of the diffusion tensor arises from the independence of the noise terms~\eqref{eq:noise_stats}.
-%Originally this equation was used to model Brownian motion, the seemingly random movement of a particle (the slow degrees of freedom) due to the collisions with the molecules of the fluid (the fast degrees of freedom). 
-%
-%In biological contexts, the limit of large drag, $\gamma \gg 1$, corresponding to the presence of large viscous forces and low Reynold's number, is most pertinent and thus inertia (or equivalently persistent acceleration) is negligible so the Langevin Equation reduces to,
-%\begin{align}
-%\dd{\vb{r}} = -\dfrac{1}{\gamma}\grad{U(\vb{r},t)}\dd{t} + \bm{\sigma}(\vb{r},t)\dd{\vb{W}}(t),
-%\end{align}
-%which has a corresponds to~\eqref{eq:general_sde} with random vector 
-%\begin{align}
-%\vb{X} = \vb{r}
-%\end{align}
-%with drift vector,
-%\begin{align}
-%\bm{\mu}(\vb{r}, t) = -\dfrac{1}{\lambda}\grad{U(\vb{r}, t)},
-%\end{align}
-%and with similar diffusion tensor.
+\subsection{The Biological Problem}
 
-\subsection{Fokker-Planck Equation}
+$\fofI$-ATP synthase is a protein found embedded in the inner linings of the inner mitochondrial membrane of 
+most living organisms. It is a specific example of a broader class of biological complexes known as molecular motors.
+It is composed of three components: a membrane-bound component ($\fo$\footnote{This is pronounced ``Eff-Oh''}), 
+and a membrane-free component ($\fI$), connected via a 
+central crankshaft. In its operation $\fofI$-ATP synthase is subjected to a large hydrogen-ion gradient 
+which established across the membrane in which the synthase is embedded. The flow of ions down this 
+gradient imparts an electromotive force on the $\fo$ component. This is then transduced into a torque that 
+induces a mechanical rotation of the central crankshaft. This mechanical rotation powers the reactions that 
+occur in the catalytic site of the enzyme, driving forward the synthesis of adenosine triphosphate (ATP) that is used
+to power many cellular process that occur elsewhere in the cell.
 
-The Fokker-Planck Equation (also known in stochastic processes as the Forward Kolmogorov Equation) is an equation of motion for the joint probability density function, $p(\vb{X}, t)$, of some random variable (possibly vector) $\vb{X}$. 
+The $\mathrm{H}^{+}$ gradient established over the membrane drives the machine 
+in the direction of the synthesis of ATP. Synthesis of ATP, on the other hand, results in a deviation of 
+ATP concentration from its steady-state value which, in turn, establishes a chemical drive 
+to hydrolyze ATP so as to restore the steady-state concentration. Thus, there are non-equilibrium
+forces being asserted on this complex which are ``in opposing directions''. As such we are interested to 
+model how energy is transduced through this machine from the $\mathrm{H}^{+}$ gradient to the ATP
+molecules. In order to investigate this we utilize a simple model of the synthase's energetics and monitor 
+the angular orientation of the subunits. Transduction of energy in this model corresponds to the average 
+net rotation of the subunits in direction of production of the molecule ATP.  
+
+\subsection{Reynolds Number for Molecular Machines}
+
+$\fofI$-ATP synthase complexes are $10\si{\nano\meter}$ in size. To examine the dominant forces that dictate the 
+overall dynamics of the complex we can observe the Reynolds number,
 \begin{align}
-    \pdv{t}p(\vb{X},t) = -\sum\limits_{i=1}^{N}\pdv{x_{i}}\left[\mu_{i}(\vb{X},t)p(\vb{X},t)\right] + \sum\limits_{i=1}^{N}\sum\limits_{j=1}^{N}\pdv{}{x_{i}}{x_{j}}\left[D_{ij}(\vb{X},t)p(\vb{X},t)\right].\label{eq:fpe_general}
+    \mathrm{Re} = \dfrac{Lv\rho_{\mathrm{med}}}{\eta_{\mathrm{med}}},\label{eq:reynolds}
+\end{align}
+where $L$ is the length of the object, $v$ is the speed of the object through the fluid, $\rho_{\mathrm{med}}$, and $\eta_{\mathrm{med}}$ denote the density and viscosity of the surrounding medium, respectively. The Reynold's number~\eqref{eq:reynolds} measures the ratio between inertial to viscous fluid forces. The Reynold's number associated with the $\fofI$ complex has an upper bound given by $\mathrm{Re} < \num{2e-5}$. For Reynolds numbers much less than unity, the behaviour of the system is utterly dominated by viscous forces (i.e. the instantaneous forces)  acting on the object. This object would therefore not retain any memory or persistent motion in this region. As such, an object that is not pushed persistenly will come to rest extremely quickly. 
+
+\subsection{Stochastic Dynamics and Modelling}
+
+Due to their size, the energy of operation of molecular complexes like $\fofI$ are of the same order as the scale of energy fluctuations in
+the complex's environment due to its thermal contact with the surrounding environment. As such, transient fluctuations have the capacity
+to induce changes in the complex's behaviour. In order to model this fluctuation-dependent dynamics of $\fofI$, we turn to stochastic differential equations (SDEs). We now outline the formulation of this problem in the framework of SDEs.
+
+\subsubsection{The Langevin equation}
+
+The Langevin equation is a stochastic differential equation that describes the time evolution of a subset of a system's coordinates. In particular, the (macroscopic) coordinates which the equation describes are taken to be those that are changing on a slower timescale in 
+comparison to other (microscopic) coordinates which are evolving at a much faster timescale. The stochastic nature of the Langevin emerges from the effective averaging of these fast variables. 
+
+We model the $\fofI$ dynamics using Langevin dynamics with the general form:
+\begin{align}
+    \dd{\bm{\theta}_{t}} = \bm{\mu}(\bm{\theta}_{t},t)\dd{t} + \bm{\sigma}(\bm{\theta}_{t},t)\dd{\vb{W}_{t}},
+\end{align}
+with drift vector $\bm{\mu}(\bm{\theta_{t}},t)$ and diffusion coefficient $D(\bm{\theta}_{t},t) = \frac{1}{2}|\bm{\sigma}(\bm{\theta}_{t},t)|^{2}$. Here $\bm{\theta}_{t} = \left[\ \theta_{0},\ \theta_{1}\ \right]^{\mathrm{T}}$ denotes the vector of coordinates describing the angular orientations of the subunits $\fo$ and $\fI$, respectively. More explicitly, Langevin equation for each subsystem of $\fofI$ is given by
+\begin{align}
+    \underbrace{\mathrm{d}
+        \begin{pmatrix}
+        \theta_{0} \\ \theta_{1}
+        \end{pmatrix}}_{\text{\Large $\dd{\bm{\theta}_{t}}$}} =
+    \underbrace{-\begin{pmatrix}
+        \zeta_{0}^{-1}\pdv{}{\theta_{0}}\\
+        \zeta_{1}^{-1}\pdv{}{\theta_{1}}
+        \end{pmatrix}V(\theta_{0},\theta_{1})}_{\text{\Large $\bm{\mu}(\bm{\theta})$}}
+    \dd{t}
+    +
+    \underbrace{\begin{pmatrix}
+        \sqrt{2D} & 0\\
+        0 & \sqrt{2D}
+        \end{pmatrix}}_{\text{\Large $\bm{\sigma}$}}
+    \underbrace{\begin{pmatrix}
+        \Gamma_{0}(t)\\
+        \Gamma_{1}(t)
+        \end{pmatrix}
+        \dd{t}}_{\text{\Large $\dd{\vb{W}_{t}}$}},\label{eq:multidim_sde}
+\end{align}
+where the potential, $V$, is given by:
+\begin{align}
+    V(\theta_{0},\theta_{1}) = \frac{1}{2}\left\{E_{0}\left[1-\cos(3\theta_{0})\right]+E_{\mathrm{c}}\left[1-\cos(\theta_{0}-\theta_{1})\right] + E_{1}\left[1-\cos(3\theta_{1})\right]\right\},\label{eq:potential}
+\end{align}
+and where $D$ is the diffusivity of the subunit. Here, we will assume that the diffusivity of both subunits is the same and independent of position or time. In addition, the drift vector is assumed to be independent of time $\bm{\mu}(\bm{\theta},t) = \bm{\mu}(\bm{\theta})$. The Langevin noise terms, $\Gamma_{i}(t)$, satisfy the statistical relations
+\begin{subequations}
+    \begin{align}
+        \ev{\Gamma_{i}} &= 0\quad \forall i,\\
+        \ev{\Gamma_{i}(t)\Gamma_{j}(s)} &= \delta_{ij}\delta(t-s),
+    \end{align}
+\end{subequations}
+for Kronecker delta $\delta_{ij}$ and Dirac delta function $\delta(t-s)$. Generally the quantities that one is interested in computing involve ensemble averages over many trajectories. Thus, while one trajectory whose dynamics is described by~\eqref{eq:multidim_sde} is fairly straightforward to numerically simulate, one generally needs a large multitude of trajectories in order to get accurate estimates of the ensemble average. It is therefore desirable in some cases to have information, not on the detailed dynamics of a single member of the ensemble, but instead on how the ensemble distribution evolves in time. Having the distribution then allows straightforward computation of the statistical moments of any quantity that one desires to compute.
+
+\subsubsection{The Fokker-Planck equation}
+
+It is possible to transform the \emph{stochastic} equation of motion of the general coordinates $\bm{\theta}_{t}$ into a \emph{deterministic} equation of motion is a partial differential equation (PDE) for the joint probability distribution, $P(\bm{\theta},t)$, over those coordinates. This deterministic equation of motion is commonly known as the Fokker-Planck equation (FPE) in the context of Physics or as the Forward-Kolmogorov Equation in the context of Statistics and Stochastic Processes. The FPE associated with the Langevin equation~\eqref{eq:multidim_sde} is given by,
+\begin{align}
+    \frac{\partial}{\partial t} P(\bm{\theta}, t) =  D\sum_{i=1}^{2}\pdv[2]{}{\theta_{i}} P(\bm{\theta}, t) -\sum_{i=1}^{2}\pdv{}{\theta_{i}}\left[\bm{\mu}(\bm{\theta})P(\bm{\theta}, t)\right]. \label{eq:FPE}
+\end{align}
+The detailed derivation of this transformation is beyond the scope of this work, though we provide references to it here should the reader be interested in reading further (see refs.). 
+%JNL: Add references here.
+Recasting~\eqref{eq:FPE} into a more familiar form in vector notation as 
+\begin{subequations}
+     \label{eq:FPE_vec}
+    \begin{align}
+        \frac{\partial}{\partial t} P(\bm{\theta}, t) &=  D\laplacian{P(\bm{\theta},t)} -\div{\left[\bm{\mu}(\bm{\theta})P(\bm{\theta},t)\right]} \\
+        &= \underbrace{D\laplacian{{P(\bm{\theta},t)}}}_{\text{Diffusion}} +  \underbrace{\left\{-\left[\div{\bm{\mu}(\bm{\theta})}\right] - \bm{\mu}(\bm{\theta})\cdot\grad\right\}{P(\bm{\theta},t)}}_{\text{Advection}}.
+    \end{align}
+\end{subequations}
+Thus, we see that the FPE is nothing more than a multidimensional advection-diffusion equation for the time-dependent probability distribution $P(\bm{\theta},t)$. As the FPE describes the evolution of a probability distribution, the solutions of this equation must therefore satisfy certain properties that probability distributions must satisfy, namely, \emph{normalization},
+\begin{align}
+    \int\dd[2]{\bm{\theta}} P(\vb{\theta},t) = 1\quad\forall\ t,\label{eq:prob_norm}
+\end{align}
+and \emph{non-negativity},
+\begin{align}
+    P(\vb{\theta},t) \ge 0\quad\forall\ t.\label{eq:nonnegativity}
 \end{align}
 
-\subsection{Models}
+In general we write the FPE in the form of
+\begin{align}
+    \pdv{P}{t} = \mathbf{L}P + \mN(P),\label{eq:gen_pde}
+\end{align}
+to split the contribution of the linear terms and the nonlinear terms of the PDE. The linear part of the equation we identify to be associated with diffusion and thus have 
+\begin{align}
+    \mathbf{L} = D\laplacian,\label{eq:linear}
+\end{align}
+while the nonlinear part we associate with the advection term,
+\begin{align}
+    \mN(P) = \left\{-\left[\div{\bm{\mu}(\bm{\theta})}\right] - \bm{\mu}(\bm{\theta})\cdot\grad\right\}{P(\bm{\theta},t)}.\label{eq:nonlinear}
+\end{align}
+For notational convenience in the subsequent sections we also introduce a shorthand for the entire RHS of~\eqref{eq:gen_pde}
+\begin{align}
+    f(P) = \mathbf{L}P+ \mN(P).\label{eq:frhs}
+\end{align}
 
- 
- \section{Methods}
+\subsection{Aims of this work}
 
+In this report, we are interested in implementing and subsequently examining the performance of a variety of numerical methods which solve the FPE. 
+
+
+\section{Numerical Methods}
+
+The FPE given in~\eqref{eq:FPE} is a PDE that captures the time-evolution of a probability distribution on a continuous potential. Due to the nonlinear nature of the potential~\eqref{eq:potential} and given that the problem has multiple dimensions (two-dimensional), analytic approximations, much less exact solutions, are intractable. As such we use numerical methods to evolve the system. To solve an advection-diffusion equation like the FPE, two methods are generally utilized: finite-difference schemes, and spectral methods. Here we investigate the quality of computed solutions from both of these methods. In the proceeding sections we introduce the numerical schemes that are utilized in this work. Hereafter, we utilize the following conventions:
+\begin{enumerate}
+    \item Uniform discretization in the angular orientations
+    \begin{enumerate}[label=--]
+        \item $\left[\theta_{0}\right]_{i} = ih\quad i\in\{0, 1, 2, \dots, N-1\}$; $h = \dfrac{2\pi}{N}$.
+        \item $\left[\theta_{1}\right]_{j} = j\ell\quad j\in\{0, 1, 2, \dots, N-1\}$; $\ell = \dfrac{2\pi}{M}$.
+        \item $N$ and $M$ are the total number of grid points that discretize the coordinates $\theta_{0}$ and $\theta_{1}$, respectively.
+        \item $h$ and $\ell$ are the spacing between the grid points of the coordinates $\theta_{0}$ and $\theta_{1}$, respectively.
+    \end{enumerate}
+    \item Shorthand on the dependence of the solution on each of the coordinates
+    \begin{enumerate}[label=--]
+        \item $P_{ij}(t) \equiv P\left(\left[\theta_{0}\right]_{i},\left[\theta_{1}\right]_{j},t\right)$
+    \end{enumerate}
+    \item $k$ denotes a time step. 
+\end{enumerate}
+
+\subsection{Finite Difference Discretization}
+
+In a desire to avoid being the definition of an idiot as described in [],%citation here
+\begin{quote}
+    ``Anyone who publishes a calculation without checking it against an identitical computation with smaller $N$ OR without evaluating the residual of the pseudospectral approximation via finite differences is an IDIOT'',
+\end{quote}
+we utilize a finite-difference discretization of the RHS of~\eqref{eq:gen_pde} as a reference to compare the pseudospectral discretization which will be described in the subsequent section. In particular, we utilize a standard finite-difference discretization of the divergence and the Laplacian which is given by
+\begin{align}
+    \dv{P_{ij}}{t} &= \Bigg[
+    \left(\dfrac{\mu_{i+1,j}P_{i+1,j}-\mu_{i-1,j}P_{i-1,j}}{2h}\right) + \left(\dfrac{\mu_{i,j+1}P_{i,j+1}-\mu_{i,j-1}P_{i,j-1}}{2\ell}\right)
+    \Bigg] \nonumber\\
+    &\hspace{3cm}+ kD\Bigg[\left(\dfrac{P_{i+1,j}-2P_{i,j}+P_{i-1,j}}{h^{2}}\right) + \left(\dfrac{P_{i,j-1}-2P_{i,j}+P_{i,j-1}}{\ell^{2}}\right) \Bigg],\label{eq:central_space}
+\end{align} 
+which is second-order in space. The order of a given scheme gives the first nonzero contribution in the computation of the truncation error. 
+
+\subsection{Pseudospectral Discretization}
+
+Spectral methods are a powerful tool for solving PDEs. They are generally used when the spatial resolution is required in multiple dimensions.  For a second-order finite difference method in two dimensions, increasing the grid resolution by a factor of two in each dimension requires four times as many grid points. In contrast, in a spectral code, a similar increase in resolution often gives an improvement of a factor of $10^{6}$. While the power and efficiency of spectral methods are  something to behold, they only work well 
+for smooth solutions. Discontinuities, even ones that are mild (such as a discontinuity in some high-order derivative of the solution), can spoil the convergence properties of the spectral method. 
+
+To apply the spectral method, we expand the solution $P$ in a suitable set of basis functions. As we have a grid that is $2\pi$-periodic Fourier series is a natural choice for a representation of our solution and thus we expand as,
+\begin{align}
+    P_{ij}(t) = \dfrac{1}{\sqrt{2\pi}}\sum\limits_{n}\sum\limits_{m}\Phat_{nm}(t)\ e^{\sqrt{-1}\left(\xi^{(0)}_{n}\left[\theta_{0}\right]_{i}+\xi^{(1)}_{m}\left[\theta_{1}\right]_{j}\right)},\label{eq:fourier_rep}
+\end{align}
+where, 
+\begin{align}
+    \Phat_{nm}(t) &\equiv \Phat\left(\xi^{(0)}_{n},\xi^{(1)}_{m},t\right),
+\end{align}
+with $\xi^{(0)}$ and $\xi^{(1)}$ being the Fourier wavenumbers associated with the coordinates $\theta_{0}$ and $\theta_{1}$, respectively. The Fourier coefficients, $\Phat(\bm{\xi},t)$, in this context are known as the \emph{characteristic functions} associated with the distribution $P(\bm{\theta},t)$.
+
+Inserting~\eqref{eq:fourier_rep} into the PDE~\eqref{eq:FPE_vec}, and equating the expressions of identical coefficients yields,
+\begin{align}
+    \dv{\Phat_{ij}(t)}{t} = -D\left[\left(\xi^{(0)}_{i}\right)^{2} + \left(\xi^{(1)}_{j}\right)^{2}\right]\Phat_{ij}(t) + \sum\limits_{n}\sum\limits_{m}W_{i-n,j-    m}\Phat_{nm}\left(t\right),\label{eq:fourier_sub}
+\end{align}
+where 
+\begin{align}
+    W_{nm} = \dfrac{1}{\sqrt{2\pi}}\iint_{0}^{2\pi}\dd{\theta_{0}}\dd{\theta_{1}}\mN(P(\bm{\theta},t))e^{\sqrt{-1}\left(\xi^{(0)}_{n}\theta_{0}+\xi^{(1)}_{m}\theta_{1}\right)}.
+\end{align}
+In comparison of~\eqref{eq:fourier_sub} with~\eqref{eq:gen_pde}, we identify that 
+\begin{align}
+    \vb{L} = -D\left[\left(\xi^{(0)}_{i}\right)^{2} + \left(\xi^{(1)}_{j}\right)^{2}\right] = -D|\bm{\xi}|^{2}.
+\end{align}
+Thus, in this representation, the linear diffusion term can be evaluated entirely in Fourier space. On the other hand, the evaluation of the nonlinear term~\eqref{eq:nonlinear} turns into an expensive matrix-vector multiplication, which scales in time as $\mathcal{O}(N_{\mathrm{tot}}^{2})$, where $N_{\mathrm{tot}} = N + M$ is the total number of grid points.  Furthermore, the matrix $W_{nm}$ has to be evaluated explicitly before the differential equation for the Fourier coefficients can be solved which is yet another additional step. 
+
+To avoid this we make use of \emph{pseudospectral} methods where we evaluate the derivatives in Fourier space but perform the pointwise multiplication between the solution $P$ and the nonlinear terms $\bm{\mu}$ in real space.
+
+Thus, the pseudospectral scheme that evaluates the nonlinear term $\mN$ is given by, 
+\begin{align}
+    \mN(\Phat) = \mF\left\{-\left[\div{\bm{\mu}(\bm{\theta})}\right]\mFi\left\{\Phat\right\} -\left[\mu_{1}(\bm{\theta})\right]\mFi\left\{\sqrt{-1}\xi^{(0)}\Phat\right\}-\left[\mu_{2}(\bm{\theta})\right]\mFi\left\{\sqrt{-1}\xi^{(1)}\Phat\right\} \right\}.
+\end{align}
+where $\mF$ denotes a Fourier Transform and $\mFi$ denotes an inverse Fourier Transform. At every time step there are at most four Fourier transforms that have to be done in order to evaluate the nonlinear part; however, these transforms can be performed using Cooley and Tukey's Fast Fourier Transform (FFT) algorithm\footnote{In this work we use the FFTW3 library and the algorithms defined therein to evaluate the necessary 2D FFTs.} and thus has time complexity $\mathcal{O}(N\log N)$ which becomes a much less costly operation compared to the cost of a matrix-vector multiply. Reformulated in this way, the the pseudospectral equivalent discretization in~\eqref{eq:fourier_sub} becomes
+\begin{align}
+    \dv{\Phat_{ij}(t)}{t} = -D|\bm{\xi}|^{2}\Phat_{ij}(t) + \mF&\left\{-\left[\div{\bm{\mu}(\bm{\theta})}\right]\mFi\left\{\Phat_{ij}\right\} -\left[\mu_{1}(\bm{\theta})\right]\mFi\left\{\sqrt{-1}\xi^{(0)}_{i}\Phat_{ij}\right\}\right.\nonumber\\
+    &\hspace{6cm}\left.-\left[\mu_{2}(\bm{\theta})\right]\mFi\left\{\sqrt{-1}\xi^{(1)}_{j}\Phat_{ij}\right\} \right\}.\label{eq:pseudospectral}
+\end{align}   
+For the characteristic functions $\Phat_{ij}(t)$ to be a valid solution to yield the correct probability distribution via~\eqref{eq:fourier_rep}, they must satisfy a normalization condition
+\begin{align}
+    \Phat_{00}(t) = 1\quad \forall\ t,
+\end{align}
+which is equivalent to~\eqref{eq:prob_norm} and a boundedness condition
+\begin{align}
+    |\Phat_{ij}(t)| < 1\quad\forall\ i,j,t,
+\end{align}
+which is equivalent to~\eqref{eq:nonnegativity}.
+
+\subsection{Stiff Equations}
+
+As soon as one deals with more than one first-order differential equation, a \emph{stiff} set of equations may possibly arise. In particular, stiffness typically occurs in a problem where there are two or more time-scales associated with your problem. The primary numerical difficulty in dealing with stiff equations arises from the fact that, to prevent instability (in the sense of absolute stability), one has to choose a time-step small enough to be able to resolve the dynamics on the fastest of timescales. 
+
+For systems of ordinary differential equations (ODEs), 
+\begin{align}
+    \dv{\vb{u}}{t} = \vb{f}\left(\vb{u}\right)
+\end{align}
+one can characterize stiffness in terms of the \emph{stiffness ratio},
+\begin{align}
+    R_{\mathrm{stiff}} \equiv \dfrac{\max\limits_{p}|\bm{\xi}_{p}|}{\min\limits_{p}|\bm{\xi}_{p}|}.
+\end{align}
+over all the $p$ eigenvalues of the Jacobian matrix $\vb{J}\equiv \vb{f}^{\prime}\left(\vb{u}\right)$.
+While such a quantity is useful in characterization, it may not be the only factor in the determination of the range of time scales. 
+
+\subsection{Time-marching schemes}
+
+We observe that, having discretized the spatial dependence using either a finite-difference~\eqref{eq:central_space} or pseudospectral method~\eqref{eq:fourier_sub}, we are left with a system of ODEs that need to be integrated. As such, we now introduce the time-marching schemes that we utilize to integrate these systems. Time-marching schemes can be classified into two broad categories: \emph{explicit} or \emph{implicit} schemes. 
+
+\subsubsection{Explicit schemes}
+Explicit schemes give the solution at the next time level in terms of an explicit formula in the form of
+\begin{align}
+    P^{n+1} = \mathrm{things\ involving\ only\ }P^{n}.
+\end{align}
+Such time-marching methods are limited by an unphysical, computational instability discovered by Courant, Friedrichs, and Lewy.
+%JNL: citation
+The stability condition can be understood as follows: The quantity $P^{n+1}$ given in the equation above, is computed from information about the solution at the grid points at time $n$.  
+\newline\newline
+\textbf{Forward-Euler}
+
+One of the simplest time-stepping schemes is known as the Forward-Euler scheme where one discretizes the time derivative using a forward difference and thus obtains the method, 
+\begin{align}
+    \Phat^{n+1} &= \Phat^{n} + kf(\Phat^{n}).\label{eq:fwd_euler}
+\end{align}
+This method has truncation error $\mathcal{O}(k)$ and thus is first-order in time.
+\newline\newline
+\textbf{Runge-Kutta (RK4) Schemes}
+
+\begin{subequations}
+    \begin{align}
+        a^{n} &= f\left(\Phat^{n}\right),\\
+        b^{n} &= f\left(\Phat^{n}+\dfrac{k}{2}a\right)\\
+        c^{n} &= f\left(\Phat^{n}+\dfrac{k}{2}b\right)\\
+        d^{n} &= f\left(\Phat^{n}+kc\right)
+    \end{align}
+\end{subequations}
+
+\begin{align}
+    U^{n+1} = U^{n} + \dfrac{k}{6}\left[a^{n} + 2\left(b^{n}+c^{n}\right) + d^{n}\right]\label{eq:rk4_scheme}
+\end{align}
+\newline\newline
+\textbf{Integrating-Factor RK4}
+
+\begin{subequations}
+    \begin{align}
+        a^{n} &= \mN\left(\Phat^{n}\right),\\
+        b^{n} &= \mN\left(e^{\mathbf{L}k/2}\left\{\Phat^{n}+\dfrac{a^{n}}{2}\right\}\right),\\
+        c^{n} &= \mN\left(e^{\mathbf{L}k/2}\Phat^{n} + \dfrac{b^{n}}{2}\right),\\
+        d^{n} &= \mN\left(e^{\mathbf{L}k}\Phat^{n} + e^{\mathbf{L}k/2}c^{n}\right)
+    \end{align}
+\end{subequations}
+
+\begin{align}
+    U^{n+1} = U^{n} + \dfrac{k}{6}\left[e^{\mathbf{L}k}a^{n} + 2e^{\mathbf{L}k/2}\left(b^{n}+c^{n}\right) + d^{n}\right]\label{eq:if_scheme}
+\end{align}
+\newline\newline
+\textbf{Exponential-Time Differencing RK4}
+
+Defining a few auxiliary quantities,
+\begin{subequations}
+    \begin{align}
+    a^{n} &= e^{\mathbf{L} k / 2} \Phat^{n}+\mathbf{L}^{-1}\left(e^{\mathrm{L} k / 2}-\mathbf{I}\right) \mN\left(\Phat_{n}\right), \\ 
+    b^{n} &= e^{\mathbf{L} k / 2} \Phat^{n}+\mathbf{L}^{-1}\left(e^{\mathbf{L} k / 2}-\mathbf{I}\right) \mN\left(a^{n}\right), \\ 
+    c^{n} &= e^{\mathbf{L} k / 2} \Phat^{n}+\mathbf{L}^{-1}\left(e^{\mathbf{L} k / 2}-\mathbf{I}\right)\left[2 \mN\left(b^{n}\right)-\mN\left(\Phat^{n}\right)\right],
+    \end{align}
+\end{subequations}
+The time-step for the exponential time-differencing scheme RK4 (ETDRK4) is then given by,
+\begin{align}
+    \Phat^{n+1}=\ e^{\mathbf{L} k} \Phat^{n}+k^{-2} \mathbf{L}^{-3}&\Bigg\{\left[-4-\mathbf{L} k+e^{\mathbf{L} k}\left(4-3 \mathbf{L} k+(\mathbf{L} k)^{2}\right)\right] \mN\left(\Phat^{n}\right) \nonumber\\ 
+    &\hspace{1cm}+2\left[2+\mathbf{L} k+e^{\mathbf{L} k}(-2+\mathbf{L} k)\right]\left[\mN\left(a^{n}\right)+\mN\left(b^{n}\right)\right] \nonumber\\
+    &\hspace{2cm}+\left[-4-3 \mathbf{L} k-(\mathbf{L} k)^{2}+e^{\mathbf{L}k}(4-\mathbf{L} k)\right] \mN\left(c^{n}\right)\Bigg\}. \label{eq:etd_scheme}
+\end{align}
+
+\subsubsection{Implicit schemes}
+
+Implicit schemes give the solution at the next time level in terms of an  formula in the form of
+\begin{align*}
+    P^{n+1} = \mathrm{things\ involving\ only\ }P^{n}\ \mathrm{and}\ P^{n+1}.
+\end{align*}
+Such time-marching methods are, often times, unconditionally stable and thus large time steps can be taken when using these schemes. The detriment to using these schemes is that the computation of the solution at the next time level generally involves solving a system of equations and thus are more expensive to evaluate per time step. In particular, the usage of implicit schemes generally removes stiffness in problems which is the reason why such schemes are used despite their increased cost.
+\newline\newline
+\textbf{IMEX schemes}
+
+The Crank-Nicolson Forward Euler (CNFE) method is given by
+\begin{align}
+\Phat_{ij}^{n+1} &= \dfrac{1}{2+Dk|\xi|^{2}}\Bigg[(2-Dk|\xi|^{2})\Phat_{ij}^{n} + \mF\left\{-2k(\div{\bm{\mu}})_{ij}\mFi\left\{\Phat_{ij}^{n}\right\}\right\} \nonumber\\
+&\hspace{1.8cm}+ \mF\left\{-2k\left[\mu_{1}(\vb{r})\right]_{ij}\mFi\left\{\sqrt{-1}\xi_{i}\Phat_{ij}^{n}\right\} \right\}+\mF\left\{-2k\left[\mu_{2}(\vb{r})\right]_{ij}\mFi\left\{\sqrt{-1}\xi_{j}\Phat_{ij}^{n}\right\} \right\}\Bigg].\label{eq:cnfe_scheme}
+\end{align}
+
+\subsection{Relaxation to steady-state}
+
+We evolve the probability distribution $P(\bm{\theta},t)$ from an initial guess to the steady-state distribution $P^{\mathrm{ss}}(\bm{\theta})$ which is defined to be the distribution that satisfies the convergence criterion,
+\begin{align}
+    \dfrac{1}{2}\sum\limits_{i=1}^{N}\sum\limits_{j=1}^{N}\left|P_{ij}^{n+1}-P_{ij}^{n}\right| < \num{1e-16}.
+\end{align}
+This criterion is the total variation distance between the distribution $P_{ij}^{n}$ at time $n$ and the distribution at time $P_{ij}^{n+1}$ at time $n+1$. Intuitively, this criterion checks when the distribution stops changing an appreciable level despite being propagated forward in time by one of the schemes discussed above and is an analog of the continuous condition 
+\begin{align}
+    \pdv{P(\bm{\theta},t)}{t} = 0.
+\end{align}
+The choice of total variation distance between two successive distributions in time as a convergence criterion is fairly arbitrary, and other choices could have been used such as sum of squared differences; however, this choice works given our purpose and thus we use it.
+
+\section{Results and Discussion}
+
+\subsection{Comparison to known solutions}
+
+For multiple-dimensions there is not a general, closed-form solution, $P(\bm{\theta},t)$, to~\eqref{eq:FPE_vec}. However, in the case when the drift vector $\bm{\mu}$ is time-independent and is of the form
+\begin{align}
+    \mu_{i} \propto -\pdv{V}{\theta_{i}}
+\end{align}
+for some potential $V$, then it is known that the limiting \emph{steady-state} probability distribution
+\begin{align}
+    \lim\limits_{t\to\infty}P(\bm{\theta},t) = \pi^{\mathrm{eq}}(\bm{\theta}),
+\end{align}
+is given by the Gibbs-Boltzmann formula
+\begin{align}
+    \pi^{\mathrm{eq}}(\bm{\theta}) = \dfrac{1}{Z}\exp\left[-V(\bm{\theta})\right],\label{eq:equilibrium_soln}
+\end{align}
+where $Z$ is just a normalization factor known as the partition function. 
+
+\subsection{Comparison between methods}
+
+\subsubsection{Finite Difference Methods}
+
+Combining the forward-Euler time marching scheme~\eqref{eq:fwd_euler} with the second-order discretization in space~\eqref{eq:central_space} gives the scheme known as Forward Time Centered Space (FTCS). The order of this scheme is easily derived to be $\mathcal{O}(k + [\max(h,\ell)]^{2})$. One of the drawbacks of the FTCS method is its strict restriction on the time-step. As we observe in the left subplot of Fig.~\ref{fig:ftcs_scheme}, for time step $k=0.5$ and for sizes of grid beyond $N > 120$, and similarly for time step $k=0.1$ and sizes of grid $N > 300$ the method becomes unstable and does not converge to the true solution. In particular, it yields a negative probability solution, a clear characteristic of instability. 
+
+\begin{figure}[!h]
+    \centering
+    \subfloat{\includegraphics[clip,scale=0.3]{fd_scheme_1_time_figure.pdf}}
+    \subfloat{\includegraphics[clip,scale=0.3]{fd_scheme_1_err_figure.pdf}}
+    \caption{FTCS scheme convergence time, $t_{\mathrm{convergence}}$, (in minutes) [left subplot] and inf-norm error, $E(N)$, between computed steady-state solution and the true equilibrium solution given by~\eqref{eq:equilibrium_soln} [right subplot] as a function of the number of grid points $N$. Different colors in a subplot denote different time step sizes $k$. }
+    \label{fig:ftcs_scheme}
+\end{figure}
+
+\subsubsection{Pseudospectral Methods}
+
+Rather than discretizing the spatial component using finite differences, if we instead discretized using the pseudospectral method~\eqref{eq:pseudospectral} and subsequently use the forward-Euler time marching scheme~\eqref{eq:fwd_euler} to integrate the equation of motion, we arrive at the scheme known as Forward Time Spectral Space (FTSS).
+
+\begin{figure}[!h]
+    \centering
+    \subfloat{\includegraphics[clip,scale=0.3]{sp_scheme_1_time_figure.pdf}}
+    \subfloat{\includegraphics[clip,scale=0.3]{sp_scheme_1_err_figure.pdf}}
+    \caption{FTSS scheme results. Same data presentation as in Fig.~\ref{fig:ftcs_scheme}.}
+    \label{fig:ftss_scheme}
+\end{figure}
+
+We use instead an IFRK4 method as the time-marching scheme, while retaining a spectral discretization.
+
+\begin{figure}[!h]
+    \centering
+    \subfloat{\includegraphics[clip,scale=0.3]{sp_scheme_5_time_figure.pdf}}
+    \subfloat{\includegraphics[clip,scale=0.3]{sp_scheme_5_err_figure.pdf}}
+    \caption{IFRK4 scheme results. Same data presentation as in Fig.~\ref{fig:ftcs_scheme}.}
+    \label{fig:ifrk4_scheme}
+\end{figure}
+
+We now examine the use of an ETDRK4 method as the time-marching scheme, while retaining a spectral discretization.
+
+\begin{figure}[!h]
+    \centering
+    \subfloat{\includegraphics[clip,scale=0.3]{sp_scheme_6_time_figure.pdf}}
+    \subfloat{\includegraphics[clip,scale=0.3]{sp_scheme_6_err_figure.pdf}}
+    \caption{ETDRK4 scheme results. Same data presentation as in Fig.~\ref{fig:ftcs_scheme}.}
+    \label{fig:etdrk4_scheme}
+\end{figure}
+
+Using an IMEX scheme. 
+
+\begin{figure}[!h]
+    \centering
+    \subfloat{\includegraphics[clip,scale=0.3]{sp_scheme_2_time_figure.pdf}}
+    \subfloat{\includegraphics[clip,scale=0.3]{sp_scheme_2_err_figure.pdf}}
+    \caption{CNFE scheme results. Same data presentation as in Fig.~\ref{fig:ftcs_scheme}.}
+    \label{fig:cnfe_scheme}
+\end{figure}
+
+\section{Conclusion}
+
+Pseudospectral methods are an extremely powerful numerical tool for solving nonlinear PDEs. 
+
+\subsection{Future Work}
+    
+    
+    
 \end{document}
