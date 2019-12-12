@@ -1,13 +1,15 @@
-\documentclass[10pt]{article}   	
+\documentclass[11pt]{article}   	
 
 % Document Formatting Packages
 \usepackage{geometry}            		
 \geometry{letterpaper}  
 \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\usepackage{breakcites}
 
 % Document Navigation Packages
 \usepackage[parfill]{parskip}          
 \usepackage{enumitem}         
+\usepackage{appendix}
 
 % Math Typesetting Tools
 \usepackage{amssymb}
@@ -68,7 +70,7 @@
 
 % Title
 \title{Pseudospectral Solutions to \\ 2D Advection-Diffusion Equations}
-\author{Joseph Lucero}
+\author{Joseph N. E. Lucero}
 \date{\today}
 
 \begin{document}
@@ -81,7 +83,7 @@ captures some of the important behaviours of rotary, stochastic, coupled systems
 explicit nonlinear degree of coupling between subunits that is not present in other models. We describe the dynamics of 
 this model using the Fokker-Planck equation. In this work we aim to examine different numerical methods which can yield
 accurate numerical solutions to this equation in an efficient manner. We find that, due to the details of the model, 
-Fourier pseudospectral methods are best suited to this endeavour, yielding over 4 orders of magnitude in improvement 
+Fourier pseudospectral methods are best suited to this endeavour, yielding over four orders of magnitude in improvement 
 of the spatial accuracy of the solution compared to that of a naive implementation of a finite difference method. 
 
 \section{Introduction}
@@ -89,34 +91,29 @@ of the spatial accuracy of the solution compared to that of a naive implementati
 \subsection{The Biological Problem}
 
 $\fofI$-ATP synthase is a protein found embedded in the inner linings of the inner mitochondrial membrane of 
-most living organisms. It is a specific example of a broader class of biological complexes known as molecular motors.
+most living organisms. It is a specific example of a broader class of biological complexes known as molecular motors~\cite{Kolomeisky2013}.
 It is composed of three components: a membrane-bound component ($\fo$\footnote{This is pronounced ``Eff-Oh''}), 
 and a membrane-free component ($\fI$), connected via a 
-central crankshaft. In its operation $\fofI$-ATP synthase is subjected to a large hydrogen-ion gradient 
+central crankshaft~\cite{Okuno2011}. In its operation $\fofI$-ATP synthase is subjected to a large hydrogen-ion gradient 
 which established across the membrane in which the synthase is embedded. The flow of ions down this 
 gradient imparts an electromotive force on the $\fo$ component. This is then transduced into a torque that 
 induces a mechanical rotation of the central crankshaft. This mechanical rotation powers the reactions that 
 occur in the catalytic site of the enzyme, driving forward the synthesis of adenosine triphosphate (ATP) that is used
 to power many cellular process that occur elsewhere in the cell.
 
-The $\mathrm{H}^{+}$ gradient established over the membrane drives the machine 
-in the direction of the synthesis of ATP. Synthesis of ATP, on the other hand, results in a deviation of 
-ATP concentration from its steady-state value which, in turn, establishes a chemical drive 
-to hydrolyze ATP so as to restore the steady-state concentration. Thus, there are non-equilibrium
-forces being asserted on this complex which are ``in opposing directions''. As such we are interested to 
-model how energy is transduced through this machine from the $\mathrm{H}^{+}$ gradient to the ATP
+We are interested in modeling how energy is transduced through this machine from the $\mathrm{H}^{+}$ gradient to the ATP
 molecules. In order to investigate this we utilize a simple model of the synthase's energetics and monitor 
 the angular orientation of the subunits. Transduction of energy in this model corresponds to the average 
 net rotation of the subunits in direction of production of the molecule ATP.  
 
 \subsection{Reynolds Number for Molecular Machines}
 
-$\fofI$-ATP synthase complexes are $10\si{\nano\meter}$ in size. To examine the dominant forces that dictate the 
+$\fofI$-ATP synthase complexes are on the order of $10\si{\nano\meter}$ in size. To examine the dominant forces that dictate the 
 overall dynamics of the complex we can observe the Reynolds number,
 \begin{align}
     \mathrm{Re} = \dfrac{Lv\rho_{\mathrm{med}}}{\eta_{\mathrm{med}}},\label{eq:reynolds}
 \end{align}
-where $L$ is the length of the object, $v$ is the speed of the object through the fluid, $\rho_{\mathrm{med}}$, and $\eta_{\mathrm{med}}$ denote the density and viscosity of the surrounding medium, respectively. The Reynold's number~\eqref{eq:reynolds} measures the ratio between inertial to viscous fluid forces. The Reynold's number associated with the $\fofI$ complex has an upper bound given by $\mathrm{Re} < \num{2e-5}$. For Reynolds numbers much less than unity, the behaviour of the system is utterly dominated by viscous forces (i.e. the instantaneous forces)  acting on the object. This object would therefore not retain any memory or persistent motion in this region. As such, an object that is not pushed persistenly will come to rest extremely quickly. 
+where $L$ is the length of the object, $v$ is the speed of the object through the fluid, $\rho_{\mathrm{med}}$, and $\eta_{\mathrm{med}}$ denote the density and viscosity of the surrounding medium, respectively. The Reynold's number~\eqref{eq:reynolds} measures the ratio between inertial to viscous fluid forces and the number associated with the $\fofI$ complex has an upper bound given by $\mathrm{Re} < \num{2e-5}$. For Reynolds numbers much less than unity, the behaviour of the system is utterly dominated by viscous forces (i.e. the instantaneous forces)  acting on the object.  As such, this molecule would therefore not retain any memory or persistent motion in this region~\cite{berg_rnd_walks}. 
 
 \subsection{Stochastic Dynamics and Modelling}
 
@@ -126,7 +123,7 @@ to induce changes in the complex's behaviour. In order to model this fluctuation
 
 \subsubsection{The Langevin equation}
 
-The Langevin equation is a stochastic differential equation that describes the time evolution of a subset of a system's coordinates. In particular, the (macroscopic) coordinates which the equation describes are taken to be those that are changing on a slower timescale in 
+The Langevin equation is a stochastic differential equation that describes the time evolution of a subset of a system's coordinates~\cite{gardiner_stochastic_ref}. In particular, the (macroscopic) coordinates which the equation describes are taken to be those that are changing on a slower timescale in 
 comparison to other (microscopic) coordinates which are evolving at a much faster timescale. The stochastic nature of the Langevin emerges from the effective averaging of these fast variables. 
 
 We model the $\fofI$ dynamics using Langevin dynamics with the general form:
@@ -166,7 +163,7 @@ and where $D$ is the diffusivity of the subunit. Here, we will assume that the d
         \ev{\Gamma_{i}(t)\Gamma_{j}(s)} &= \delta_{ij}\delta(t-s),
     \end{align}
 \end{subequations}
-for Kronecker delta $\delta_{ij}$ and Dirac delta function $\delta(t-s)$. Generally the quantities that one is interested in computing involve ensemble averages over many trajectories. Thus, while one trajectory whose dynamics is described by~\eqref{eq:multidim_sde} is fairly straightforward to numerically simulate, one generally needs a large multitude of trajectories in order to get accurate estimates of the ensemble average. It is therefore desirable in some cases to have information, not on the detailed dynamics of a single member of the ensemble, but instead on how the ensemble distribution evolves in time. Having the distribution then allows straightforward computation of the statistical moments of any quantity that one desires to compute.
+for Kronecker delta $\delta_{ij}$ and Dirac delta function $\delta(t-s)$. Generally the quantities that one is interested in computing involve averages over an ensemble of trajectories. Computing such averages directly from~\eqref{eq:multidim_sde} is generally difficult and closed-form solutions exist only for a very rare number of cases. As such, many turn to numerical simulations; however, while one trajectory whose dynamics is described by~\eqref{eq:multidim_sde} is fairly straightforward to numerically simulate~\cite{kloeden1992}, one generally needs a large multitude of trajectories in order to get accurate estimates of the ensemble average and thus an extensive amount of computational time. It is therefore desirable in some cases to have information, not on the detailed dynamics of a single member of the ensemble, but instead on how the ensemble distribution evolves in time. Having the distribution then allows straightforward computation of the statistical moments of any quantity that one desires to compute.
 
 \subsubsection{The Fokker-Planck equation}
 
@@ -174,14 +171,14 @@ It is possible to transform the \emph{stochastic} equation of motion of the gene
 \begin{align}
     \frac{\partial}{\partial t} P(\bm{\theta}, t) =  D\sum_{i=1}^{2}\pdv[2]{}{\theta_{i}} P(\bm{\theta}, t) -\sum_{i=1}^{2}\pdv{}{\theta_{i}}\left[\bm{\mu}(\bm{\theta})P(\bm{\theta}, t)\right]. \label{eq:FPE}
 \end{align}
-The detailed derivation of this transformation is beyond the scope of this work, though we provide references to it here should the reader be interested in reading further (see refs.). 
+The detailed derivation of this transformation is beyond the scope of this work, though we provide references to it here should the reader be interested in reading further~\cite{van2011stochastic,risken_fpe,jacobs_stochastic}. 
 %JNL: Add references here.
 Recasting~\eqref{eq:FPE} into a more familiar form in vector notation as 
 \begin{subequations}
      \label{eq:FPE_vec}
     \begin{align}
-        \frac{\partial}{\partial t} P(\bm{\theta}, t) &=  D\laplacian{P(\bm{\theta},t)} -\div{\left[\bm{\mu}(\bm{\theta})P(\bm{\theta},t)\right]} \\
-        &= \underbrace{D\laplacian{{P(\bm{\theta},t)}}}_{\text{Diffusion}} +  \underbrace{\left\{-\left[\div{\bm{\mu}(\bm{\theta})}\right] - \bm{\mu}(\bm{\theta})\cdot\grad\right\}{P(\bm{\theta},t)}}_{\text{Advection}}.
+       \pdv{P(\bm{\theta}, t)}{t} &=  D\laplacian{P(\bm{\theta},t)} -\div{\left[\bm{\mu}(\bm{\theta})P(\bm{\theta},t)\right]} \\
+        &= \underbrace{D\laplacian{{P(\bm{\theta},t)}}}_{\text{Diffusion}} +  \underbrace{\left\{-\left[\div{\bm{\mu}(\bm{\theta})}\right] - \bm{\mu}(\bm{\theta})\cdot\grad\right\}P(\bm{\theta},t)}_{\text{Advection}}.
     \end{align}
 \end{subequations}
 Thus, we see that the FPE is nothing more than a multidimensional advection-diffusion equation for the time-dependent probability distribution $P(\bm{\theta},t)$. As the FPE describes the evolution of a probability distribution, the solutions of this equation must therefore satisfy certain properties that probability distributions must satisfy, namely, \emph{normalization},
@@ -192,10 +189,20 @@ and \emph{non-negativity},
 \begin{align}
     P(\vb{\theta},t) \ge 0\quad\forall\ t.\label{eq:nonnegativity}
 \end{align}
+From~\eqref{eq:FPE_vec} it is also easy to see that the normalization condition~\eqref{eq:prob_norm}, or equivalently probability conservation, is enforced naturally as the FPE can be recast into the form of a continuity equation
+\begin{subequations}
+    \label{eq:continuity}
+    \begin{align}
+        \pdv{P(\bm{\theta}, t)}{t} &= -\div{\left[\bm{\mu}(\bm{\theta})P(\bm{\theta},t)\right]} + D\laplacian{P(\bm{\theta},t)} \\
+        &= -\div{\left[\bm{\mu}(\bm{\theta})P(\bm{\theta},t) - D\grad{P(\bm{\theta},t)}\right]}\\
+        &= -\div{\vb{J}}.
+    \end{align}
+\end{subequations}
 
-In general we write the FPE in the form of
+
+By application of the method of lines, we are able write the FPE in the form of
 \begin{align}
-    \pdv{P}{t} = \mathbf{L}P + \mN(P),\label{eq:gen_pde}
+    \dv{P}{t} = \mathbf{L}P + \mN(P),\label{eq:gen_pde}
 \end{align}
 to split the contribution of the linear terms and the nonlinear terms of the PDE. The linear part of the equation we identify to be associated with diffusion and thus have 
 \begin{align}
@@ -205,19 +212,18 @@ while the nonlinear part we associate with the advection term,
 \begin{align}
     \mN(P) = \left\{-\left[\div{\bm{\mu}(\bm{\theta})}\right] - \bm{\mu}(\bm{\theta})\cdot\grad\right\}{P(\bm{\theta},t)}.\label{eq:nonlinear}
 \end{align}
-For notational convenience in the subsequent sections we also introduce a shorthand for the entire RHS of~\eqref{eq:gen_pde}
+We thus seek suitable discretizations of these linear and nonlinear terms to facilitate computation. For notational convenience in the subsequent sections we also introduce a shorthand for the entire RHS of~\eqref{eq:gen_pde}
 \begin{align}
     f(P) = \mathbf{L}P+ \mN(P).\label{eq:frhs}
 \end{align}
 
 \subsection{Aims of this work}
 
-In this report, we are interested in implementing and subsequently examining the performance of a variety of numerical methods which solve the FPE. 
-
+In this report, we are primarily interested in implementing and subsequently examining the performance of a variety of numerical methods which solve the FPE for its steady-state distribution. In particular, we are interested in extending, and comparing with, previous work which implemented finite difference methods to find the steady-state distribution of the FPE to the world of (pseudo-)spectral methods. 
 
 \section{Numerical Methods}
 
-The FPE given in~\eqref{eq:FPE} is a PDE that captures the time-evolution of a probability distribution on a continuous potential. Due to the nonlinear nature of the potential~\eqref{eq:potential} and given that the problem has multiple dimensions (two-dimensional), analytic approximations, much less exact solutions, are intractable. As such we use numerical methods to evolve the system. To solve an advection-diffusion equation like the FPE, two methods are generally utilized: finite-difference schemes, and spectral methods. Here we investigate the quality of computed solutions from both of these methods. In the proceeding sections we introduce the numerical schemes that are utilized in this work. Hereafter, we utilize the following conventions:
+The FPE given in~\eqref{eq:FPE} is a PDE that captures the time-evolution of a probability distribution on a continuous potential. Due to the nonlinear nature of the potential~\eqref{eq:potential} and given that the problem has multiple dimensions (two-dimensional), analytic approximations, much less exact solutions, are intractable~\cite{risken_fpe}. As such we use numerical methods to evolve the system. To solve an advection-diffusion equation like the FPE, two methods are generally utilized: finite-difference schemes, and spectral methods~\cite{numerical_recipes}. Here we investigate the quality of computed solutions from both of these methods. In the proceeding sections we introduce the numerical schemes that are utilized in this work. Hereafter, we utilize the following conventions:
 \begin{enumerate}
     \item Uniform discretization in the angular orientations
     \begin{enumerate}[label=--]
@@ -230,28 +236,38 @@ The FPE given in~\eqref{eq:FPE} is a PDE that captures the time-evolution of a p
     \begin{enumerate}[label=--]
         \item $P_{ij}(t) \equiv P\left(\left[\theta_{0}\right]_{i},\left[\theta_{1}\right]_{j},t\right)$
     \end{enumerate}
-    \item $k$ denotes a time step. 
+    \item $t_{n} = nk$ where $k$ denotes a time step. $n$ as a superscript in quantites such as $P^{n}$ will provides an abbreviation of the quantity $P^{n} = P(t_{n})$.
 \end{enumerate}
 
 \subsection{Finite Difference Discretization}
 
-In a desire to avoid being the definition of an idiot as described in [],%citation here
+In a desire to avoid being the definition of an idiot as described in~\cite{boyd2013chebyshev},
 \begin{quote}
     ``Anyone who publishes a calculation without checking it against an identitical computation with smaller $N$ OR without evaluating the residual of the pseudospectral approximation via finite differences is an IDIOT'',
 \end{quote}
-we utilize a finite-difference discretization of the RHS of~\eqref{eq:gen_pde} as a reference to compare the pseudospectral discretization which will be described in the subsequent section. In particular, we utilize a standard finite-difference discretization of the divergence and the Laplacian which is given by
+we utilize a finite-difference discretization of the RHS of~\eqref{eq:gen_pde} as a reference to compare the pseudospectral discretization which will be described in the subsequent section. In particular, we utilize a standard finite-difference discretization of the divergence and the Laplacian. As such we have that the linear term is discretized with
+\begin{align}
+    \vb{L}P = D\Bigg[\left(\dfrac{P_{i+1,j}-2P_{i,j}+P_{i-1,j}}{h^{2}}\right) + \left(\dfrac{P_{i,j-1}-2P_{i,j}+P_{i,j-1}}{\ell^{2}}\right) \Bigg],
+\end{align}
+and the nonlinear term is discretized with
+\begin{align}
+    \mN(P)=\Bigg[
+        \left(\dfrac{\mu_{i+1,j}P_{i+1,j}-\mu_{i-1,j}P_{i-1,j}}{2h}\right) + \left(\dfrac{\mu_{i,j+1}P_{i,j+1}-\mu_{i,j-1}P_{i,j-1}}{2\ell}\right)
+        \Bigg].
+\end{align}
+Therefore, the overall scheme is given by
 \begin{align}
     \dv{P_{ij}}{t} &= \Bigg[
     \left(\dfrac{\mu_{i+1,j}P_{i+1,j}-\mu_{i-1,j}P_{i-1,j}}{2h}\right) + \left(\dfrac{\mu_{i,j+1}P_{i,j+1}-\mu_{i,j-1}P_{i,j-1}}{2\ell}\right)
     \Bigg] \nonumber\\
     &\hspace{3cm}+ kD\Bigg[\left(\dfrac{P_{i+1,j}-2P_{i,j}+P_{i-1,j}}{h^{2}}\right) + \left(\dfrac{P_{i,j-1}-2P_{i,j}+P_{i,j-1}}{\ell^{2}}\right) \Bigg],\label{eq:central_space}
 \end{align} 
-which is second-order in space. The order of a given scheme gives the first nonzero contribution in the computation of the truncation error. 
+which is second-order in space. The order of a given scheme gives the leading order contribution in the computation of the truncation error~\cite{leveque2007finite}. 
 
 \subsection{Pseudospectral Discretization}
 
-Spectral methods are a powerful tool for solving PDEs. They are generally used when the spatial resolution is required in multiple dimensions.  For a second-order finite difference method in two dimensions, increasing the grid resolution by a factor of two in each dimension requires four times as many grid points. In contrast, in a spectral code, a similar increase in resolution often gives an improvement of a factor of $10^{6}$. While the power and efficiency of spectral methods are  something to behold, they only work well 
-for smooth solutions. Discontinuities, even ones that are mild (such as a discontinuity in some high-order derivative of the solution), can spoil the convergence properties of the spectral method. 
+Spectral methods are a powerful tool for solving PDEs. They are generally used when the spatial resolution is required in multiple dimensions and are especially natural when solving a PDE subject to spatially periodic boundary conditions.  For a second-order finite difference method in two dimensions, increasing the grid resolution by a factor of two in each dimension requires four times as many grid points. In contrast, in a spectral code, a similar increase in resolution often gives an improvement of a factor of $10^{6}$. While the power and efficiency of spectral methods are  something to behold, they only work well 
+for smooth solutions. Discontinuities, even ones that are mild (such as a discontinuity in some high-order derivative of the solution), can spoil the convergence properties of the spectral method~\cite{trefethen2000spectral}. 
 
 To apply the spectral method, we expand the solution $P$ in a suitable set of basis functions. As we have a grid that is $2\pi$-periodic Fourier series is a natural choice for a representation of our solution and thus we expand as,
 \begin{align}
@@ -273,26 +289,26 @@ where
 \end{align}
 In comparison of~\eqref{eq:fourier_sub} with~\eqref{eq:gen_pde}, we identify that 
 \begin{align}
-    \vb{L} = -D\left[\left(\xi^{(0)}_{i}\right)^{2} + \left(\xi^{(1)}_{j}\right)^{2}\right] = -D|\bm{\xi}|^{2}.
+    \vb{L} = -D\left[\left(\xi^{(0)}_{i}\right)^{2} + \left(\xi^{(1)}_{j}\right)^{2}\right] = -D|\bm{\xi}|^{2}.\label{eq:fourier_linear}
 \end{align}
 Thus, in this representation, the linear diffusion term can be evaluated entirely in Fourier space. On the other hand, the evaluation of the nonlinear term~\eqref{eq:nonlinear} turns into an expensive matrix-vector multiplication, which scales in time as $\mathcal{O}(N_{\mathrm{tot}}^{2})$, where $N_{\mathrm{tot}} = N + M$ is the total number of grid points.  Furthermore, the matrix $W_{nm}$ has to be evaluated explicitly before the differential equation for the Fourier coefficients can be solved which is yet another additional step. 
 
-To avoid this we make use of \emph{pseudospectral} methods where we evaluate the derivatives in Fourier space but perform the pointwise multiplication between the solution $P$ and the nonlinear terms $\bm{\mu}$ in real space.
+To avoid this costly computation at every time step we make use of \emph{pseudospectral} methods, where we evaluate the derivatives in Fourier space but perform the pointwise multiplication between the solution $P$ and the nonlinear terms $\bm{\mu}$ in real space~\cite{boyd2013chebyshev}.
 
 Thus, the pseudospectral scheme that evaluates the nonlinear term $\mN$ is given by, 
 \begin{align}
-    \mN(\Phat) = \mF\left\{-\left[\div{\bm{\mu}(\bm{\theta})}\right]\mFi\left\{\Phat\right\} -\left[\mu_{1}(\bm{\theta})\right]\mFi\left\{\sqrt{-1}\xi^{(0)}\Phat\right\}-\left[\mu_{2}(\bm{\theta})\right]\mFi\left\{\sqrt{-1}\xi^{(1)}\Phat\right\} \right\}.
+    \mN(\Phat) = \mF\left\{-\left[\div{\bm{\mu}(\bm{\theta})}\right]\mFi\left\{\Phat\right\} -\left[\mu_{1}(\bm{\theta})\right]\mFi\left\{\sqrt{-1}\xi^{(0)}\Phat\right\}-\left[\mu_{2}(\bm{\theta})\right]\mFi\left\{\sqrt{-1}\xi^{(1)}\Phat\right\} \right\}.\label{eq:fourier_nonlinear}
 \end{align}
-where $\mF$ denotes a Fourier Transform and $\mFi$ denotes an inverse Fourier Transform. At every time step there are at most four Fourier transforms that have to be done in order to evaluate the nonlinear part; however, these transforms can be performed using Cooley and Tukey's Fast Fourier Transform (FFT) algorithm\footnote{In this work we use the FFTW3 library and the algorithms defined therein to evaluate the necessary 2D FFTs.} and thus has time complexity $\mathcal{O}(N\log N)$ which becomes a much less costly operation compared to the cost of a matrix-vector multiply. Reformulated in this way, the the pseudospectral equivalent discretization in~\eqref{eq:fourier_sub} becomes
+where $\mF$ denotes a Fourier Transform and $\mFi$ denotes an inverse Fourier Transform. At every time step there are at most four Fourier transforms that have to be done in order to evaluate the nonlinear part; however, these transforms can be performed using Cooley and Tukey's Fast Fourier Transform (FFT) algorithm\footnote{In this work we use the \href{http://www.fftw.org/}{FFTW3} library and the algorithms defined therein to evaluate the necessary 2D FFTs~\cite{FFTW05}.} and thus has time complexity $\mathcal{O}(N\log N)$ which becomes a much less costly operation compared to the cost of a matrix-vector multiply~\cite{cooley1965}. Reformulated in this way, the pseudospectral equivalent discretization in~\eqref{eq:fourier_sub} becomes
 \begin{align}
     \dv{\Phat_{ij}(t)}{t} = -D|\bm{\xi}|^{2}\Phat_{ij}(t) + \mF&\left\{-\left[\div{\bm{\mu}(\bm{\theta})}\right]\mFi\left\{\Phat_{ij}\right\} -\left[\mu_{1}(\bm{\theta})\right]\mFi\left\{\sqrt{-1}\xi^{(0)}_{i}\Phat_{ij}\right\}\right.\nonumber\\
     &\hspace{6cm}\left.-\left[\mu_{2}(\bm{\theta})\right]\mFi\left\{\sqrt{-1}\xi^{(1)}_{j}\Phat_{ij}\right\} \right\}.\label{eq:pseudospectral}
 \end{align}   
-For the characteristic functions $\Phat_{ij}(t)$ to be a valid solution to yield the correct probability distribution via~\eqref{eq:fourier_rep}, they must satisfy a normalization condition
+For the characteristic functions $\Phat_{ij}(t)$ to yield a valid probability distribution via~\eqref{eq:fourier_rep}, they must satisfy a normalization condition
 \begin{align}
     \Phat_{00}(t) = 1\quad \forall\ t,
 \end{align}
-which is equivalent to~\eqref{eq:prob_norm} and a boundedness condition
+which can be shown to be equivalent to~\eqref{eq:prob_norm} and a boundedness condition
 \begin{align}
     |\Phat_{ij}(t)| < 1\quad\forall\ i,j,t,
 \end{align}
@@ -300,18 +316,17 @@ which is equivalent to~\eqref{eq:nonnegativity}.
 
 \subsection{Stiff Equations}
 
-As soon as one deals with more than one first-order differential equation, a \emph{stiff} set of equations may possibly arise. In particular, stiffness typically occurs in a problem where there are two or more time-scales associated with your problem. The primary numerical difficulty in dealing with stiff equations arises from the fact that, to prevent instability (in the sense of absolute stability), one has to choose a time-step small enough to be able to resolve the dynamics on the fastest of timescales. 
+As soon as one deals with more than one first-order differential equation, a \emph{stiff} set of equations may possibly arise. In particular, stiffness typically occurs in a problem where there are two or more time-scales associated with your problem. The primary numerical difficulty in dealing with stiff equations originates from the fact that, to prevent instability (in the sense of absolute stability), one has to choose a time-step small enough to be able to resolve the dynamics on the fastest of timescales. 
 
 For systems of ordinary differential equations (ODEs), 
 \begin{align}
-    \dv{\vb{u}}{t} = \vb{f}\left(\vb{u}\right)
+    \dv{\vb{P}}{t} = \vb{f}\left(\vb{P}\right)
 \end{align}
 one can characterize stiffness in terms of the \emph{stiffness ratio},
 \begin{align}
-    R_{\mathrm{stiff}} \equiv \dfrac{\max\limits_{p}|\bm{\xi}_{p}|}{\min\limits_{p}|\bm{\xi}_{p}|}.
+    R_{\mathrm{stiff}} \equiv \dfrac{\max\limits_{r}|\bm{\xi}_{r}|}{\min\limits_{r}|\bm{\xi}_{r}|}.
 \end{align}
-over all the $p$ eigenvalues of the Jacobian matrix $\vb{J}\equiv \vb{f}^{\prime}\left(\vb{u}\right)$.
-While such a quantity is useful in characterization, it may not be the only factor in the determination of the range of time scales. 
+over all the $q$ eigenvalues of the Jacobian matrix $\vb{J}\equiv \vb{f}^{\prime}\left(\vb{P}\right)$~\cite{leveque2007finite}. Applying this to~\eqref{eq:gen_pde} and with the identification~\eqref{eq:fourier_linear} we see that the resulting method of lines equation is stiff as the time scale associated with the $\xi^{(0)}$th and $\xi^{(1)}$th mode scales as $\mathcal{O}\left(\left[|\xi^{(0)}|^{2}+|\xi^{(0)}|^{2}\right]^{-1}\right)$ so that the highest modes evolve on the shortest time scales. Therefore, the dominance of diffusion in the dynamics introduces the stiffness of the equation through the presence of the Laplacian differential operator. 
 
 \subsection{Time-marching schemes}
 
@@ -320,58 +335,82 @@ We observe that, having discretized the spatial dependence using either a finite
 \subsubsection{Explicit schemes}
 Explicit schemes give the solution at the next time level in terms of an explicit formula in the form of
 \begin{align}
-    P^{n+1} = \mathrm{things\ involving\ only\ }P^{n}.
+    P^{n+1} = \mathrm{terms\ involving\ only\ }P^{n}.
 \end{align}
-Such time-marching methods are limited by an unphysical, computational instability discovered by Courant, Friedrichs, and Lewy.
-%JNL: citation
-The stability condition can be understood as follows: The quantity $P^{n+1}$ given in the equation above, is computed from information about the solution at the grid points at time $n$.  
-\newline\newline
-\textbf{Forward-Euler}
+Such time-marching methods are limited by an unphysical, computational instability discovered by Courant, Friedrichs, and Lewy (CFL)~\cite{leveque2007finite}. One often observes the CFL stability limit arise in considerations of finite-difference discretizations to advection-dominated problems. In particular the CFL criterion in that case is reflective of the fact that information travels at a finite speed $v_{\mathrm{max}}$. For a differencing scheme to be CFL stable, the domain of dependence to the past of the differencing scheme must be larger than that of the PDE which it is integrating. However, even when there is no error due to spatial discretizations, as is often true with when using Fourier basis as we are here, computational dispersion and/or dissipation can still arise due to the presence of errors from time-marching. Explicit schemes generally have stability limits which are of the form 
+\begin{align}
+    k < \dfrac{q}{|\xi|_{\mathrm{max}}},
+\end{align} 
+where $q$ is an $\mathcal{O}(1)$ constant dependent on the scheme. 
 
-One of the simplest time-stepping schemes is known as the Forward-Euler scheme where one discretizes the time derivative using a forward difference and thus obtains the method, 
+The time-stepping constraints arising from this stability criterion can be rather severe~\cite{trefethen2000spectral}. For diffusion-dominated problems in the Fourier basis, the eigenvalues of the diffusion operator are given by $\lambda = -|\bm{\xi}|^{2}$. Truncating to a finite set of modes $\xi^{(i)}\in(-N/2,N/2]$ then it follows that explicit schemes will only be stable for all wavenumbers only if
+\begin{align}
+    k < q\dfrac{4}{N^{2}}.
+\end{align} 
+As such, doubling $N$ will require four times as many time steps to maintain stability of the method. While this criterion is stringent, there are a variety of ways that one can use to alleviate it and these methods will be discussed in subsequent sections. \\
+
+\noindent\textbf{Forward Euler}
+
+One of the simplest time-stepping schemes is known as the Forward Euler scheme where one discretizes the time derivative using a forward difference and thus obtains the method~\cite{numerical_recipes}, 
 \begin{align}
     \Phat^{n+1} &= \Phat^{n} + kf(\Phat^{n}).\label{eq:fwd_euler}
 \end{align}
-This method has truncation error $\mathcal{O}(k)$ and thus is first-order in time.
-\newline\newline
-\textbf{Runge-Kutta (RK4) Schemes}
+This method has truncation error $\mathcal{O}(k)$ and thus is first-order in time. The fundamental idea of this method is based on the principle that in a short enough period of time, such that $f$ does not vary too much in that time, the change in the solution will be approximately equal to the change in time multiplied by $f$. \\
 
+\noindent\textbf{Runge-Kutta (RK4) Schemes}
+
+The idea of generalizing the Euler method, by allowing for a number of evaluations of the derivative to take place within a single step, is generally attributed to the work of Runge, Heun, and Kutta~\cite{boyd2013chebyshev}. While the derivation of the classic method is straightforward, it is too detailed for our purposes here and thus we simply state the result and leave references for the reader should they wish to investigate further~\cite{butcher2008numerical}. % citation
+Defining the increments,
 \begin{subequations}
     \begin{align}
         a^{n} &= f\left(\Phat^{n}\right),\\
-        b^{n} &= f\left(\Phat^{n}+\dfrac{k}{2}a\right)\\
-        c^{n} &= f\left(\Phat^{n}+\dfrac{k}{2}b\right)\\
-        d^{n} &= f\left(\Phat^{n}+kc\right)
+        b^{n} &= f\left(\Phat^{n}+\dfrac{k}{2}a^{n}\right)\\
+        c^{n} &= f\left(\Phat^{n}+\dfrac{k}{2}b^{n}\right)\\
+        d^{n} &= f\left(\Phat^{n}+kc^{n}\right),
     \end{align}
 \end{subequations}
-
+The next value $\Phat^{n+1}$ is determined by the present value $\Phat^{n}$ plus the weighted average of the four increments,
 \begin{align}
-    U^{n+1} = U^{n} + \dfrac{k}{6}\left[a^{n} + 2\left(b^{n}+c^{n}\right) + d^{n}\right]\label{eq:rk4_scheme}
-\end{align}
-\newline\newline
-\textbf{Integrating-Factor RK4}
+    \Phat^{n+1} = \Phat^{n} + \dfrac{k}{6}\left[a^{n} + 2\left(b^{n}+c^{n}\right) + d^{n}\right]\label{eq:rk4_scheme}
+\end{align}\\
 
+\noindent\textbf{Integrating-Factor RK4}
+
+An \emph{integrating factor} is a transformation of the unknowns in a differential equation. Given that we can write the FPE in the form~\eqref{eq:gen_pde}, we define the solution $\Phat$ in terms of a new unknown defined by,
+\begin{align}
+    \Phat_{ij}(t) \equiv e^{-\vb{L}t}\tilde{P}_{ij}(t).
+\end{align}
+Thus we now solve the simplified equation,
+\begin{align}
+    \dv{\tilde{P}_{ij}(t)}{t} = e^{\vb{L}t}\mN(\tilde{P}_{ij}(t)). \label{eq:if_mol}
+\end{align}
+The introduction of the integrating factor has removed the differential operator $\vb{L}$ from the equation; however, this characteristic may or may not be desirable. The removal of the linear operator $\vb{L}$ is desirable in that it removes the primary contribution of stiffness in the problem. As such, it removes the stringent time-step restrictions on the explicit time-marching schemes and thus the range of time step values $k$ over which these schemes remain stable becomes larger. Coupling~\eqref{eq:if_mol} with the RK4 scheme given in~\eqref{eq:rk4_scheme} gives the modified increments,
 \begin{subequations}
     \begin{align}
         a^{n} &= \mN\left(\Phat^{n}\right),\\
         b^{n} &= \mN\left(e^{\mathbf{L}k/2}\left\{\Phat^{n}+\dfrac{a^{n}}{2}\right\}\right),\\
         c^{n} &= \mN\left(e^{\mathbf{L}k/2}\Phat^{n} + \dfrac{b^{n}}{2}\right),\\
-        d^{n} &= \mN\left(e^{\mathbf{L}k}\Phat^{n} + e^{\mathbf{L}k/2}c^{n}\right)
+        d^{n} &= \mN\left(e^{\mathbf{L}k}\Phat^{n} + e^{\mathbf{L}k/2}c^{n}\right).
     \end{align}
 \end{subequations}
-
+The next value $\Phat^{n+1}$ is then given by,
 \begin{align}
-    U^{n+1} = U^{n} + \dfrac{k}{6}\left[e^{\mathbf{L}k}a^{n} + 2e^{\mathbf{L}k/2}\left(b^{n}+c^{n}\right) + d^{n}\right]\label{eq:if_scheme}
+    U^{n+1} = U^{n} + \dfrac{k}{6}\left[e^{\mathbf{L}k}a^{n} + 2e^{\mathbf{L}k/2}\left(b^{n}+c^{n}\right) + d^{n}\right].\label{eq:if_scheme}
 \end{align}
-\newline\newline
-\textbf{Exponential-Time Differencing RK4}
+In the scheme, rather than using the time $t$ in the integrating factor as in~\eqref{eq:if_mol}, in the above equation we use the time step $k$ instead. This choice is known to stabilize the algorithm and thus we employ it here~\cite{trefethen2000spectral}.  \\
 
-Defining a few auxiliary quantities,
+\noindent\textbf{Exponential Time-Differencing RK4}
+
+Exponential time-differencing (ETD) of low order were initially derive to solve numerical problems in the field of computational electrodynamics. If we apply the integrating factor and then integrate over a single time step $k$ we get
+\begin{align}
+    \Phat^{n+1} = e^{\vb{L}k}\Phat^{n} + e^{\vb{L}k}\int\limits_{0}^{k}\dd{x} e^{-\vb{L}x}\mN(\Phat(t_{n}+x),t_{n}+x)
+\end{align}
+The derivation of the associated fourth-order Runge-Kutta scheme for this equation is not straightforward and thus we direct the reader to reference~\cite{cox2002} for further details. We summarize the main result here. Let us definine a few auxiliary quantities,
 \begin{subequations}
     \begin{align}
     a^{n} &= e^{\mathbf{L} k / 2} \Phat^{n}+\mathbf{L}^{-1}\left(e^{\mathrm{L} k / 2}-\mathbf{I}\right) \mN\left(\Phat_{n}\right), \\ 
     b^{n} &= e^{\mathbf{L} k / 2} \Phat^{n}+\mathbf{L}^{-1}\left(e^{\mathbf{L} k / 2}-\mathbf{I}\right) \mN\left(a^{n}\right), \\ 
-    c^{n} &= e^{\mathbf{L} k / 2} \Phat^{n}+\mathbf{L}^{-1}\left(e^{\mathbf{L} k / 2}-\mathbf{I}\right)\left[2 \mN\left(b^{n}\right)-\mN\left(\Phat^{n}\right)\right],
+    c^{n} &= e^{\mathbf{L} k / 2} \Phat^{n}+\mathbf{L}^{-1}\left(e^{\mathbf{L} k / 2}-\mathbf{I}\right)\left[2 \mN\left(b^{n}\right)-\mN\left(\Phat^{n}\right)\right].
     \end{align}
 \end{subequations}
 The time-step for the exponential time-differencing scheme RK4 (ETDRK4) is then given by,
@@ -380,70 +419,96 @@ The time-step for the exponential time-differencing scheme RK4 (ETDRK4) is then 
     &\hspace{1cm}+2\left[2+\mathbf{L} k+e^{\mathbf{L} k}(-2+\mathbf{L} k)\right]\left[\mN\left(a^{n}\right)+\mN\left(b^{n}\right)\right] \nonumber\\
     &\hspace{2cm}+\left[-4-3 \mathbf{L} k-(\mathbf{L} k)^{2}+e^{\mathbf{L}k}(4-\mathbf{L} k)\right] \mN\left(c^{n}\right)\Bigg\}. \label{eq:etd_scheme}
 \end{align}
+The canonical implementation of this method is found in~\cite{kassam2005} and we build the algorithm used in this work upon the template that they provide. 
 
 \subsubsection{Implicit schemes}
 
 Implicit schemes give the solution at the next time level in terms of an  formula in the form of
 \begin{align*}
-    P^{n+1} = \mathrm{things\ involving\ only\ }P^{n}\ \mathrm{and}\ P^{n+1}.
+    P^{n+1} = \mathrm{terms\ involving\ both\ }P^{n}\ \mathrm{and}\ P^{n+1}.
 \end{align*}
-Such time-marching methods are, often times, unconditionally stable and thus large time steps can be taken when using these schemes. The detriment to using these schemes is that the computation of the solution at the next time level generally involves solving a system of equations and thus are more expensive to evaluate per time step. In particular, the usage of implicit schemes generally removes stiffness in problems which is the reason why such schemes are used despite their increased cost.
-\newline\newline
-\textbf{IMEX schemes}
+Such time-marching methods are, often times, unconditionally stable and thus large time steps can be taken when using these schemes. The detriment to using these schemes is that one is required to compute a boundary value problem (BVP) at the next time level generally involves solving a system of equations and thus are more expensive to evaluate per time step. In particular, the usage of implicit schemes generally removes stiffness in problems which is the why such schemes are used despite their increased cost. \\
+\newpage
+\noindent\textbf{IMEX schemes}
 
-The Crank-Nicolson Forward Euler (CNFE) method is given by
+Purely implicit methods have an exceptionally high cost when applied to nonlinear equations as the solution at next time level have to be obtained by solving a nonlinear BVP. It is beneficial then to split the equation and treat the linear and nonlinear terms in the equation separately. The resulting method is generally referred to as Implicit-Explicit (IMEX) methods~\cite{ascher1995}. A less popular, though particularly easy to implement in this case, IMEX method is the Crank-Nicolson Forward Euler (CNFE). In this method we treat the linear term $\vb{L}P$ in~\eqref{eq:gen_pde} implicitly using the trapezoidal rule (known as ``Crank-Nicolson'' method when applied to diffusion) given by,
 \begin{align}
-\Phat_{ij}^{n+1} &= \dfrac{1}{2+Dk|\xi|^{2}}\Bigg[(2-Dk|\xi|^{2})\Phat_{ij}^{n} + \mF\left\{-2k(\div{\bm{\mu}})_{ij}\mFi\left\{\Phat_{ij}^{n}\right\}\right\} \nonumber\\
-&\hspace{1.8cm}+ \mF\left\{-2k\left[\mu_{1}(\vb{r})\right]_{ij}\mFi\left\{\sqrt{-1}\xi_{i}\Phat_{ij}^{n}\right\} \right\}+\mF\left\{-2k\left[\mu_{2}(\vb{r})\right]_{ij}\mFi\left\{\sqrt{-1}\xi_{j}\Phat_{ij}^{n}\right\} \right\}\Bigg].\label{eq:cnfe_scheme}
+    U^{n+1} = U^{n} + \dfrac{k}{2}\left[f(U^{n+1}) + f(U^{n})\right],
 \end{align}
+and used Forward-Euler on the nonlinear term $\mN(P)$ so that the overall scheme is given by,
+\begin{align}
+    \Phat^{n+1} = \Phat^{n} + \dfrac{k}{2}\vb{L}\left[\Phat^{n+1}+\Phat^{n}\right] + \mN\left(\Phat^{n}\right). \label{eq:trapz_euler}
+\end{align}
+This scheme overall maintains a first-order accuracy in time. One could conceivably use a higher order method to march time forward; however, as discussed in the subsequent section, in this case such methods are unnecessary.
 
 \subsection{Relaxation to steady-state}
 
 We evolve the probability distribution $P(\bm{\theta},t)$ from an initial guess to the steady-state distribution $P^{\mathrm{ss}}(\bm{\theta})$ which is defined to be the distribution that satisfies the convergence criterion,
 \begin{align}
-    \dfrac{1}{2}\sum\limits_{i=1}^{N}\sum\limits_{j=1}^{N}\left|P_{ij}^{n+1}-P_{ij}^{n}\right| < \num{1e-16}.
+    \dfrac{1}{2}\sum\limits_{i=1}^{N}\sum\limits_{j=1}^{N}\left|P_{ij}^{n+1}-P_{ij}^{n}\right| < \num{8e-16}.\label{eq:converge_crit}
 \end{align}
-This criterion is the total variation distance between the distribution $P_{ij}^{n}$ at time $n$ and the distribution at time $P_{ij}^{n+1}$ at time $n+1$. Intuitively, this criterion checks when the distribution stops changing an appreciable level despite being propagated forward in time by one of the schemes discussed above and is an analog of the continuous condition 
+This criterion is the \emph{total variation distance} between the distribution $P_{ij}^{n}$ at time $n$ and the distribution at time $P_{ij}^{n+1}$ at time $n+1$. Intuitively, this criterion checks when the distribution stops changing an appreciable level, defined by machine epsilon, despite being propagated forward in time by one of the schemes discussed above. This is a discrete analog of the continuous condition,
 \begin{align}
-    \pdv{P(\bm{\theta},t)}{t} = 0.
+    \pdv{P(\bm{\theta},t)}{t} = 0,
 \end{align}
-The choice of total variation distance between two successive distributions in time as a convergence criterion is fairly arbitrary, and other choices could have been used such as sum of squared differences; however, this choice works given our purpose and thus we use it.
+that defines the steady-state. The choice of total variation distance between two successive distributions in time as a convergence criterion is fairly arbitrary, and other choices could have been used such as sum of squared differences; however, this choice works given our purpose and thus we use it.
+
+Marching with a scheme that has minimal time-accuracy is defensible when the goal is only to compute the steady-state of the equation. In this case, as the time-dependent behaviour of the solution is irrelevant, potentially large errors in the rate of decay also become irrelevant. It is known that methods such as Forward Euler, Crank-Nicolson Forward Euler, and Exponential Time-Differencing schemes always give the steady state exactly. As such, it is sensible to solve the boundary value problem 
+\begin{align}
+    \div{\bm{J}} = \bm{0},\label{eq:bvp_form}
+\end{align}
+acquired by setting the time variation in~\eqref{eq:continuity} to zero, by applying the time-marching schemes discussed above to the time-dependent equation~\eqref{eq:FPE}. Moreover, one is forced to do this since, as currently formulated, the BVP~\eqref{eq:bvp_form} is not well-posed in the sense of Hadamard~\cite{hadamard1902}. 
 
 \section{Results and Discussion}
 
 \subsection{Comparison to known solutions}
 
-For multiple-dimensions there is not a general, closed-form solution, $P(\bm{\theta},t)$, to~\eqref{eq:FPE_vec}. However, in the case when the drift vector $\bm{\mu}$ is time-independent and is of the form
+For multiple-dimensions there is not a general, closed-form solution, $P(\bm{\theta},t)$, to~\eqref{eq:FPE_vec}. However, in the case when the drift vector $\bm{\mu}$ is time-independent and is the negative gradient of some potential $V$,
 \begin{align}
-    \mu_{i} \propto -\pdv{V}{\theta_{i}}
+    \bm{\mu}(\bm{\theta},t) = \bm{\mu}(\bm{\theta}) \propto -\grad{V(\bm{\theta})},
 \end{align}
-for some potential $V$, then it is known that the limiting \emph{steady-state} probability distribution
+or simply that the drift vector is due to a conservative force, then it is known that the limiting \emph{steady-state} probability distribution
 \begin{align}
-    \lim\limits_{t\to\infty}P(\bm{\theta},t) = \pi^{\mathrm{eq}}(\bm{\theta}),
+    \lim\limits_{t\to\infty}P(\bm{\theta},t) = \pi(\bm{\theta}),
 \end{align}
 is given by the Gibbs-Boltzmann formula
 \begin{align}
-    \pi^{\mathrm{eq}}(\bm{\theta}) = \dfrac{1}{Z}\exp\left[-V(\bm{\theta})\right],\label{eq:equilibrium_soln}
+    \pi(\bm{\theta}) = \dfrac{1}{Z}\exp\left[-V(\bm{\theta})\right],\label{eq:equilibrium_soln}
 \end{align}
-where $Z$ is just a normalization factor known as the partition function. 
+where $Z$ is just a normalization factor known as the partition function~\cite{reif2009fundamentals}. Figure~\ref{fig:eq_fig} shows an illustration of this distribution for the parameters $E_{0} = E_{1} = 2$ and $E_{\mathrm{c}} = 8$.
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[clip,scale=0.3]{{equilibrium_N_60_M_60_psi0_0.0_psi1_0.0_figure}.pdf}
+    \caption{The true steady-state solution $\pi(\bm{\theta})$ computed using the Gibbs-Boltzmann formula.}
+    \label{fig:eq_fig}
+\end{figure}
 
 \subsection{Comparison between methods}
 
+While the implementations of all the subsequent methods to be discussed have been designed to accommodate rectangular grids, we focus our attention in this report on a square grids where the number of points that discretize the $\theta_{0}$ dimension is equal to the number of points that discretize the $\theta_{1}$ dimension (ie. $N=M$). The computation of the numerical steady-state solution of~\eqref{eq:gen_pde} is given 8 hours (480 minutes) on a single core machine. The convergence time is computed using the computers internal system clock and measures the amount of time from when the evolution begins to when the convergence criterion is met and the evolution ends. If convergence is not achieved in the 8 hours alloted to the program, the program is killed and no results are shown. The relative error, $E(N)$, between the computed steady-state solution, $P^{\mathrm{ss}}$, and the true steady-state solution, $\pi$, is computed by
+\begin{align}
+    E(N) = \dfrac{||P^{\mathrm{ss}}(\bm{\theta})-\pi(\bm{\theta})||_{\infty}}{||\pi(\bm{\theta})||_{\infty}}.
+\end{align}
+Additionally, throughout the program runtime, there are constant checks on the normalization and boundedness of the solution. Whenever these checks are failed, the algorithm is also immediately killed and thus no results are shown. In the following discussions, we will disambiguate these two different cases of no results as necessary.
+
 \subsubsection{Finite Difference Methods}
 
-Combining the forward-Euler time marching scheme~\eqref{eq:fwd_euler} with the second-order discretization in space~\eqref{eq:central_space} gives the scheme known as Forward Time Centered Space (FTCS). The order of this scheme is easily derived to be $\mathcal{O}(k + [\max(h,\ell)]^{2})$. One of the drawbacks of the FTCS method is its strict restriction on the time-step. As we observe in the left subplot of Fig.~\ref{fig:ftcs_scheme}, for time step $k=0.5$ and for sizes of grid beyond $N > 120$, and similarly for time step $k=0.1$ and sizes of grid $N > 300$ the method becomes unstable and does not converge to the true solution. In particular, it yields a negative probability solution, a clear characteristic of instability. 
+Combining the forward-Euler time marching scheme~\eqref{eq:fwd_euler} with the second-order discretization in space~\eqref{eq:central_space} gives the scheme commonly known as Forward Time Centered Space (FTCS)~\cite{fletcher2013computational}. The order of this scheme is easily derived to be $\mathcal{O}(k + [\max(h,\ell)]^{2})$. One of the drawbacks of the FTCS method is its strict restriction on the time-step. As we observe in the left subplot of Fig.~\ref{fig:ftcs_scheme}, for time step $k=0.5$ and for sizes of grid beyond $N > 120$, and similarly for time step $k=0.1$ and sizes of grid $N > 300$ the method becomes unstable and does not converge to the true solution. In particular, it yields a negative probability solution, a clear characteristic of instability. 
 
 \begin{figure}[!h]
     \centering
     \subfloat{\includegraphics[clip,scale=0.3]{fd_scheme_1_time_figure.pdf}}
     \subfloat{\includegraphics[clip,scale=0.3]{fd_scheme_1_err_figure.pdf}}
-    \caption{FTCS scheme convergence time, $t_{\mathrm{convergence}}$, (in minutes) [left subplot] and inf-norm error, $E(N)$, between computed steady-state solution and the true equilibrium solution given by~\eqref{eq:equilibrium_soln} [right subplot] as a function of the number of grid points $N$. Different colors in a subplot denote different time step sizes $k$. }
+    \caption{FTCS scheme convergence time, $t_{\mathrm{convergence}}$, (in minutes) [left subplot] and relative inf-norm error, $E(N)$, between computed steady-state solution and the true equilibrium solution given by~\eqref{eq:equilibrium_soln} [right subplot] as a function of the number of grid points $N$. Different colors in a subplot denote different time step sizes $k$. }
     \label{fig:ftcs_scheme}
 \end{figure}
-
+\newpage
 \subsubsection{Pseudospectral Methods}
 
-Rather than discretizing the spatial component using finite differences, if we instead discretized using the pseudospectral method~\eqref{eq:pseudospectral} and subsequently use the forward-Euler time marching scheme~\eqref{eq:fwd_euler} to integrate the equation of motion, we arrive at the scheme known as Forward Time Spectral Space (FTSS).
+\noindent\textbf{Forward Euler}
+
+Rather than discretizing the spatial component using finite differences, if we instead discretized using the pseudospectral method~\eqref{eq:pseudospectral} and subsequently use the Forward Euler time-marching scheme~\eqref{eq:fwd_euler} to integrate the resulting equation of motion, we arrive at the scheme known as Forward Time Spectral Space (FTSS). We observe in Fig.~\ref{fig:ftss_scheme} the time-to-convergence results of this scheme (left subplot) as well as the relative error in the solution that it gives (right subplot. We observe that there remains a tight time step restriction on the methods. In particular, time-steps of size $k=\nicefrac{1}{2}$ the numerical evolution destabilizes for grids with more than $N=60$ points. On the other end, too small of step size, requires time which exceeds the allotted amount. It is also interesting that the magnitude of the error on the final computed steady-state solution seems to vary with the time step size $k$ for a given grid size $N$. \\
 
 \begin{figure}[!h]
     \centering
@@ -453,7 +518,31 @@ Rather than discretizing the spatial component using finite differences, if we i
     \label{fig:ftss_scheme}
 \end{figure}
 
-We use instead an IFRK4 method as the time-marching scheme, while retaining a spectral discretization.
+\noindent\textbf{IFRK4 scheme}
+
+We now examine the IFRK4 method as the time-marching scheme, while retaining a spectral discretization. Observing the results for this method we see in terms of convergence time that the IFRK4 scheme is stable even for very large time steps. This is in contrast to the Forward Euler results but is to be expected as the stiffness of the equation has now been removed by the introduction of the integrating factor and thus the stability criterion is much less stringent with this scheme allowing for larger time steps. 
+
+Here we observe an interesting phenomenon. While able to remove stiffness, integrating factor schemes also have the unfortunate side-effect of shifting the fixed points of the ODE that is being integrated. In order to see why this this could be the case, consider the simple example\footnote{originally mentioned to the author by the instructor.}, for $\lambda>0$,
+\begin{align}
+    \dv{u}{t} + \lambda u = b.\label{eq:if_example}
+\end{align}
+The steady-state solution $u^{*}$ is immediately obtained to be
+\begin{align}
+    u^{*} = \dfrac{b}{\lambda}.
+\end{align}
+Applying the integrating factor method to~\eqref{eq:if_example}, with $\tilde{u} \equiv e^{\lambda t}u$, gives the modified equation,
+\begin{align}
+    \dv{\tilde{u}}{t} = e^{\lambda t} b. \label{eq:if_mod_example}
+\end{align}
+For simplicity of discussion consider the Forward Euler method as applied to the modified equation above. From an arbitrary value $\tilde{u}_{0}$, we have that
+\begin{align}
+    \tilde{u}^{n} = \tilde{u}^{0} + kb\dfrac{1-e^{nk\lambda}}{1-e^{k\lambda}}.
+\end{align} 
+In the limit that $k\to 0$ and $n\to\infty$ this expression simplifies to,
+\begin{align}
+    \tilde{u}^{n} = \dfrac{F}{\lambda} - \dfrac{Fk}{2} + \mathcal{O}(k^{2}).
+\end{align}
+We observe that the method is indeed consistent, in that the limit $k\to 0$ recovers the true steady-state solution; however, for finite $k$ the steady-state solution is the incorrect one. We observe this reflected in the error that is computed for the steady-state solution of the IFRK4 method (right subplot of Fig.~\ref{fig:ifrk4_scheme}) which is large compared to the FTSS algorithm as well as the others to be discussed. Even if the method is given the correct steady-state solution~\eqref{eq:equilibrium_soln} as an initial guess, it updates the solution to a steady-state that is different from that which is desired. As such, this method, though promising in that it removes the stiffness problem, is ultimately an unsuitable choice of algorithm.\\
 
 \begin{figure}[!h]
     \centering
@@ -463,7 +552,10 @@ We use instead an IFRK4 method as the time-marching scheme, while retaining a sp
     \label{fig:ifrk4_scheme}
 \end{figure}
 
-We now examine the use of an ETDRK4 method as the time-marching scheme, while retaining a spectral discretization.
+\noindent\textbf{ETDRK4 scheme}
+
+We now examine the use of an ETDRK4 method as the time-marching scheme, while retaining a spectral discretization. We observe that no data is present for the time step of $k=0.001$ which is due to the fact that convergence was not achieved in the time allotted to the program. Upon further investigation, we found that for this step size, while the total variation distance in the criterion~\eqref{eq:converge_crit} decreases monotonically, after a certain point in the simulation, the total variation distance begins to rise and eventually oscillates around an average value $\approx \num{1e-12}$, which does not match the threshold.  This indicates that for sufficiently small $k$ oscillations in the solution are introduced such that the solution between two successive time points is not stationary.
+Interestingly, we observe that the ETD scheme is unstable for grid sizes $N < 120$. The origin of this instability is still unclear. \\
 
 \begin{figure}[!h]
     \centering
@@ -473,7 +565,18 @@ We now examine the use of an ETDRK4 method as the time-marching scheme, while re
     \label{fig:etdrk4_scheme}
 \end{figure}
 
-Using an IMEX scheme. 
+\noindent\textbf{IMEX scheme}
+
+Combining the Crank-Nicolson (trapezoidal) and Forward Euler with the pseudospectral discretization as in~\eqref{eq:trapz_euler} gives the CNFE scheme,
+\begin{align}
+    \Phat_{ij}^{n+1} = \dfrac{1}{2+Dk|\xi|^{2}}\Bigg[
+    (2-Dk|\xi|^{2})\Phat_{ij}^{n} 
+    &+ \mF\left\{-2k(\div{\bm{\mu}})_{ij}\mFi\left\{\Phat_{ij}^{n}\right\}
+    -2k\left[\mu_{1}(\vb{r})\right]_{ij}\mFi\left\{\sqrt{-1}\xi_{i}\Phat_{ij}^{n}\right\}\right. \nonumber\\
+    &\hspace{5cm}\left. -2k\left[\mu_{2}(\vb{r})\right]_{ij}\mFi\left\{\sqrt{-1}\xi_{j}\Phat_{ij}^{n}\right\} \right\}
+    \Bigg].\label{eq:cnfe_scheme}
+\end{align}
+Treating the diffusion term implicitly has the benefit of removing the stiffness from this equation. As such, although this method retains only a first-order accuracy in the time evolution, the time step restriction arising from the stiffness is removed. We can see evidence of this improved stability when comparing the convergence time between this scheme and that of FTSS (cf. Figs.~\ref{fig:ftss_scheme} and~\ref{fig:cnfe_scheme}). In comparing the two schemes we see that, whereas in FTSS for time step size $k = \nicefrac{1}{2}$ with grid size $N > 60$ the method was unstable, the CNFE scheme retains stability for the same time step size across all of the grid sizes. Akin to the FTSS method, here we also see a non-monotonic dependence on the magnitude of the error as a function of the time step size $k$ for a given grid size $N$. A potential source for this non-monotonicity is the tradeoff between accuracy in the time-evolution and the accumulation of roundoff errors. For large $k$ the time-evolution is inaccurate and thus would converge (in the sense of~\eqref{eq:converge_crit}) earlier than it should. For small $k$ the time-evolution is more accurate, but many more time-steps need to be taken and thus roundoff error has a greater chance of accumulating. 
 
 \begin{figure}[!h]
     \centering
@@ -485,9 +588,43 @@ Using an IMEX scheme.
 
 \section{Conclusion}
 
-Pseudospectral methods are an extremely powerful numerical tool for solving nonlinear PDEs. 
+Pseudospectral methods are an extremely powerful numerical tool for solving nonlinear, periodic, PDEs. If used correctly, we have seen that these methods can increase the accuracy of the solution by more than four orders of magnitude while retaining minimal computation time. Additionally, by considering the stiffness of the equation and dealing with it appropriately, in particular by modifying the time-marching scheme that we use, we have observed an increase in the range of allowable time steps that can be used. This translates to an overall decrease in the required computation time while still maintaining spectral accuracy in the solution. While finite-difference methods such as FTCS will work for ascertaining the numerical steady-state solution of the FPE, for a relatively little amount of effort, and a fairly straightforward implementation, one can enormously improve the quality of solutions by utilizing spectral methods. As such, these methods warrant consideration when solving these types of problems.
+
+This project has contributed to the initial construction of a FORTRAN library\footnote{in addition to increasing the author's experience in this particular programming language}, with a Python interface, that is usable, in house, by others in the author's research group either to solve for the steady-state of more exotic and novel potentials, or as a template to build other algorithms for different problems. 
 
 \subsection{Future Work}
+
+In the immediate future, extending the methods implemented here to accommodate time-dependent potentials are of particular interest. While here, we saw that for a time-independent potential the problem was diffusion-dominated, when the potential is allowed to change in time, depending on how rapid the potential varies in time, the problem may become advection-dominated and thus different considerations regarding the stability of the scheme must be taken. In addition, we also intend to explore how to extend the methods here to unbounded domains. 
+
+\appendixpage
+\appendix
+
+All the code that was used to generate the data shown in this report can be found at the public repository: \\
+
+\href{https://github.com/jnlucero96/apma922/tree/master/project}{https://github.com/jnlucero96/apma922/tree/master/project}\\
+
+\noindent We now describe the structure of the repository and a brief description of all the files within. 
+
+\section{Repository Structure}
+
+\begin{enumerate}
+    \item \verb|presentation| - directory storing all of the materials that were used in creating the presentation which was given on the 5th of December 2019.
+    \item \verb|proposal| - directory storing all of the materials for the initial proposal for this project.
+    \item \verb|report| - directory containing up-to-date versions of this report.
+    \item \verb|src| - directory containing all of the code that was used to generate, visualize, and analyze the data that is used in this report.
+    \begin{enumerate}
+        \item \verb|analysis.py| - script that, given a directory of data files, will plot the convergence time and errors as a function of the size of the grid. This script also can make movies of the time-evolution using the ``trace'' function given the time-dependent simulation data. 
+        \item \verb|fd_main.py| - script that sets up the finite-difference problem. Calls initialize.py to set up the necessary arrays before computing with them. Calls the FORTRAN module \verb|fd_mod|. Decides which method within the \verb|fd_mod| module is to be used to perform time-marching. After the simulation, this script processes the data into various output files.
+        \item \verb|finite_difference.f90| - script that forms the basis of the module \verb|fd_mod|. Contains implementations of the FTCS method as well as 2nd-order Runge-Kutta method (not examined in this work). 
+        \item \verb|initialize.py| - script that defines the problem object (either in 1D or 2D) containing all of the variables and arrays that are necessary to compute the numerical steady-state solution. 
+        \item \verb|spectral_main.py| - script that sets up the pseudospectral problem. Similar to \verb|fd_main.py| but for spectral methods. Calls the FORTRAN module \verb|spectral_mod|. Decides the method by which time marching occurs. After the simulation, this script processes the data into various output files.
+        \item \verb|spectral.f90| - script that implements all the methods in the \verb|spectral_mod| module. The construction of the methods found in this code is what most of this project was about. Contains many different time-marching schemes (some of which were not discussed in this report at all but were implemented along the way -- eg. implicit Runge-Kutta methods).
+        \item \verb|subs.f90| - reference script that contains self-verified algorithms for the FFT based representation of the Laplacian and the divergence. 
+    \end{enumerate}
+\end{enumerate}
+
+\bibliographystyle{apalike}
+\bibliography{mybib}
     
     
     
