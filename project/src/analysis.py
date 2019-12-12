@@ -38,7 +38,7 @@ def get_params():
     # 9 := gl08
     # 10 := gl10
 
-    scheme = 6
+    scheme = 1
 
     return ( dt, N, M, psi1, psi2, steady, scheme )
 
@@ -57,8 +57,9 @@ def plot_equilibrium():
     xx, yy = np.meshgrid(problem.theta0, problem.theta1, indexing="ij")
 
     fig, ax = subplots(1,1)
-    ax.set_xlabel(r"$\theta_{0}$", fontsize=28)
-    ax.set_ylabel(r"$\theta_{1}$", fontsize=28)
+    ax.set_xlabel(r"$\theta_{0}$", fontsize=38)
+    ax.set_ylabel(r"$\theta_{1}$", fontsize=38, labelpad=12)
+    ax.tick_params(labelsize=34)
 
     temp_fig, temp_ax = subplots(1,1)
     cs = temp_ax.contourf(
@@ -67,31 +68,33 @@ def plot_equilibrium():
             0.0, 1.05*problem.p_equil.max(),
             problem.n*problem.m
             ).reshape(problem.n, problem.m), 30,
-        vmin=0.0, vmax=problem.p_equil.max(), cmap=get_cmap("afmhot")
+        vmin=0.0, vmax=problem.p_equil.max(), cmap=get_cmap("viridis")
         )
 
     ax.contourf(
         problem.theta0, problem.theta1, problem.p_equil, 30,
-        vmin=0.0, vmax=problem.p_equil.max(), cmap=get_cmap("afmhot")
+        vmin=0.0, vmax=problem.p_equil.max(), cmap=get_cmap("viridis")
         )
 
     fig.tight_layout()
 
-    left = 0.1
-    right = 0.85
+    left = 0.12
+    right = 0.80
     bottom = 0.1
-    top = 0.925
+    top = 0.95
 
     fig.subplots_adjust(left=left, right=right, bottom=bottom, top=top)
 
-    cax = fig.add_axes([0.88,0.10, 0.02, 0.825])
+    cax = fig.add_axes([0.82, 0.10, 0.02, top-bottom])
     cbar = fig.colorbar(cs, cax=cax, orientation="vertical", ax=ax)
     cbar.formatter.set_scientific(True)
     cbar.formatter.set_powerlimits((0,0))
-    cbar.ax.tick_params(labelsize=24)
-    cbar.ax.yaxis.offsetText.set_fontsize(24)
-    cbar.ax.yaxis.offsetText.set_x(2.75)
+    cbar.ax.tick_params(labelsize=34)
+    cbar.ax.yaxis.offsetText.set_fontsize(28)
+    cbar.ax.yaxis.offsetText.set_x(5.75)
     cbar.update_ticks()
+
+    fig.text(0.93, 0.5*(top+bottom), r"$\pi(\bm{\theta})$", fontsize=38, rotation="vertical")
 
     fig.savefig(target_dir + f"/equilibrium_N_{N}_M_{M}_psi0_{psi0}_psi1_{psi1}_figure.pdf")
 
@@ -100,13 +103,19 @@ def analyze_oversight():
     [ _, _, _, psi0, psi1, _, scheme ] = get_params()
 
     target_dir = './master_output_dir/'
-    data_dir = "/Users/jlucero/data_dir/2019-12-03/"
+    data_dir = "/Users/jlucero/data_dir/2019-12-02/"
 
     dtlist = [5e-1, 1e-1, 1e-2, 1e-3]
 
-    spatial_type = "sp"
+    spatial_type = "fd"
 
-    Ndicts = {}; tdicts = {}; errdicts = {}
+    Ndicts = {}; tdicts = {}; errdicts = {}; maxdicts = {
+        N: problem_2D(
+        x0=0.0, xn=2.0*pi, y0=0.0, ym=2.0*pi, n=N, m=N,
+        E0=2.0, Ec=8.0, E1=2.0, num_minima0=3.0, num_minima1=3.0,
+        D=0.001, psi0=psi0, psi1=psi1
+        ).p_equil.max() for N in [60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360]
+    }
 
     for dt in dtlist:
 
@@ -135,7 +144,10 @@ def analyze_oversight():
     for ii, dt in enumerate(dtlist):
 
         try:
-            ax.plot(Ndicts[dt], tdicts[dt], "o-", color=f"C{ii}", ms=12, label=rf"${dt}$")
+            ax.plot(
+                Ndicts[dt], tdicts[dt], "o-", 
+                color=f"C{ii}", ms=12, label=rf"${dt}$"
+                )
         except KeyError:
             print(f"{dt} not present. Not plotting as result.")
 
@@ -158,13 +170,17 @@ def analyze_oversight():
     for ii, dt in enumerate(dtlist):
 
         try:
-            ax2.plot(Ndicts[dt], errdicts[dt], "o-", color=f"C{ii}", ms=12, label=rf"${dt}$")
+            maxref = np.array([maxdicts[n] for n in Ndicts[dt]])
+            ax2.plot(
+                Ndicts[dt], errdicts[dt]/maxref, "o-", 
+                color=f"C{ii}", ms=12, label=rf"${dt}$"
+                )
         except KeyError:
             print(f"{dt} not present. Not plotting as result.")
 
     ax2.set_xticks([60.0, 120.0, 180.0, 240.0, 300.0, 360.0])
     ax2.set_xlim([60.0, 361.0])
-    ax2.set_ylim([1e-18, 1e-2])
+    ax2.set_ylim([1e-15, 1e-1])
     ax2.set_yscale("log")
     ax2.grid(True)
     ax2.legend(loc=0, prop={"size": 22}, title=r"$k$", title_fontsize=24)
@@ -181,15 +197,16 @@ def analyze_oversight():
     for ii, dt in enumerate(dtlist):
 
         try:
+            maxref = np.array([maxdicts[n] for n in Ndicts[dt]])
             ax3.plot(
-                errdicts[dt], tdicts[dt], "o-",
+                errdicts[dt]/maxref, tdicts[dt], "o-",
                 color=f"C{ii}", ms=12, label=rf"${dt}$"
                 )
         except KeyError:
             print(f"{dt} not present. Not plotting as result.")
 
     ax3.set_ylim([1e-3, 1e3])
-    ax3.set_xlim([1e-18, 1e-2])
+    ax3.set_xlim([1e-15, 1e-1])
     ax3.set_xscale("log")
     ax3.set_yscale("log")
     ax3.grid(True)
